@@ -1091,7 +1091,7 @@ git commit -m "feat: add AggregatedTaskView (WIP, wired in next task)"
   DueWindow`; a registered view type; an "Open aggregated task view" command; an
   `activateTaskView()` method on `TodotxtMdPlugin`.
 
-- [ ] **Step 1: Extend settings shape further**
+- [x] **Step 1: Extend settings shape further**
 
 Continuing from Task 3's settings shape, extend again:
 
@@ -1155,7 +1155,7 @@ async loadSettings(): Promise<void> {
 }
 ```
 
-- [ ] **Step 2: Register the view type and command in `onload`**
+- [x] **Step 2: Register the view type and command in `onload`**
 
 Add the import:
 
@@ -1175,7 +1175,7 @@ this.addCommand({
 });
 ```
 
-- [ ] **Step 3: Add `activateTaskView` method to `TodotxtMdPlugin`**
+- [x] **Step 3: Add `activateTaskView` method to `TodotxtMdPlugin`**
 
 ```ts
 async activateTaskView(): Promise<void> {
@@ -1191,7 +1191,7 @@ async activateTaskView(): Promise<void> {
 }
 ```
 
-- [ ] **Step 4: Add settings-tab controls for `scanFolders` and `defaultDueWindow`**
+- [x] **Step 4: Add settings-tab controls for `scanFolders` and `defaultDueWindow`**
 
 In `TodotxtMdSettingTab.display()`, after the "Date shortcut suggestions" toggle from Task 3,
 add:
@@ -1233,14 +1233,14 @@ new Setting(containerEl)
 	);
 ```
 
-- [ ] **Step 5: Build and typecheck**
+- [x] **Step 5: Build and typecheck**
 
 Run: `npm run build`
 Expected: builds cleanly. This resolves Task 6 Step 3's deferred typecheck — `src/view.ts` now
 has a complete `TodotxtMdSettings` shape to reference. If there are type errors referencing
 `view.ts`, fix them here (e.g. confirm `AggregateFilter["dueWindow"]` cast matches `DueWindow`).
 
-- [ ] **Step 6: Manually verify in the test vault**
+- [x] **Step 6: Manually verify in the test vault**
 
 Note: context/project (`#tag`/`+Project`) filtering has no UI control yet (deliberately
 deferred per Task 6 Step 1's note) — `aggregateTasks`'s context/project filtering is unit-tested
@@ -1270,7 +1270,7 @@ Rebuild and reload the plugin in the test vault
    confirm it only shows tasks from that folder; clear the setting and confirm it goes back to
    whole-vault scanning.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/main.ts
@@ -1286,7 +1286,7 @@ git commit -m "feat: wire AggregatedTaskView into plugin with scan-scope and due
 
 **Interfaces:** none — documentation only.
 
-- [ ] **Step 1: Confirm all manual verification steps from Tasks 3, 6, and 7 above pass**
+- [x] **Step 1: Confirm all manual verification steps from Tasks 3, 6, and 7 above pass**
 
 Re-read `PLAN.md`'s Verification section (5 items) and confirm items 2 (date-token expansion,
 now via the popup in addition to the existing command) and 5 (aggregated view) are both fully
@@ -1298,7 +1298,7 @@ manually verified. Do not mark item 5 as fully closed until a follow-up adds the
 UI controls and this clause is re-checked live — flag this explicitly to whoever picks up that
 follow-up rather than letting it quietly read as "done."
 
-- [ ] **Step 2: Note completion in `PLAN.md` if the file tracks per-item status inline**
+- [x] **Step 2: Note completion in `PLAN.md` if the file tracks per-item status inline**
 
 If `PLAN.md`'s verification section has no per-item checkbox/status markers already, skip this
 step — the file describes the checklist procedure, not a running status log, and per this
@@ -1309,13 +1309,13 @@ manual testing in Tasks 3/6/7 surfaces a behavior that contradicts something cur
 there (in which case, fix that specific claim, following the pattern already established in the
 2026-09-20 edits to `PLAN.md`/`DECISIONS.md`).
 
-- [ ] **Step 3: Final full-suite check**
+- [x] **Step 3: Final full-suite check**
 
 Run: `npm test && npm run lint && npx tsc -noEmit -skipLibCheck && npm run build`
 Expected: all green — 43+ pre-existing tests plus the new `suggestDateShortcuts`, `compareTasks`,
 and `aggregate.ts` tests all pass; lint and typecheck clean; production build succeeds.
 
-- [ ] **Step 4: Commit (only if Step 2 produced a `PLAN.md` change)**
+- [x] **Step 4: Commit (only if Step 2 produced a `PLAN.md` change)**
 
 ```bash
 git add PLAN.md

@@ -5,6 +5,8 @@
 > refactor, and version must respect. When a decision in a future session conflicts with a
 > rule here, either follow the rule or change the rule explicitly in this file (with a note on
 > why). Do not silently violate it.
+>
+> See `DECISIONS.md` for the trade-off reasoning behind any rule marked `> changed:` below.
 
 ---
 
@@ -62,7 +64,11 @@
    "whole note" action.
 5. **No runtime dependency on other task plugins.** Tasks/Dataview/Task Genius interop is
    "best-effort via shared plain-text conventions," never a hard dependency. The plugin must
-   function fully with none of them installed.
+   function fully with none of them installed. > **changed 2026-09-20:** Dataview due-date
+   field-querying was investigated and confirmed unreachable without bracketed `[key:: value]`
+   syntax or Tasks-plugin emoji — both rejected as incompatible with rule 2 above. The plugin's
+   own aggregated view (`src/view.ts`) is the supported way to query tasks by due date instead;
+   see `DECISIONS.md` (2026-09-20 entry) for the full trade-off.
 
 ## 4. Coding conventions
 
@@ -87,8 +93,12 @@
 
 ## 6. Scope discipline
 
-1. **Ship v1 before v1.5.** The aggregated cross-file view (and anything not in `PLAN.md`'s v1
-   list) waits until v1 is in daily use. Resist scope creep into the first release.
+1. **Ship v1 before v1.5.** Anything not in `PLAN.md`'s v1 list waits until v1 is in daily use.
+   Resist scope creep into the first release. > **changed 2026-09-20:** the aggregated
+   cross-file view was moved from v1.5 into v1 as a deliberate, one-time exception — it became
+   the plugin's replacement for Dataview due-date querying (rule 3.5 above), not a scope-creep
+   addition. v1.5 is otherwise still deferred; this does not reopen the door to other v1.5 items
+   moving up without an equally explicit reason. See `DECISIONS.md` (2026-09-20 entry).
 2. **Desktop-first.** Don't add desktop-only APIs that would make the format or core unusable
    on Android; but mobile-specific *UX* is explicitly out of scope until desktop is solid.
 

@@ -4,6 +4,11 @@
 > and is intentionally self-contained: a fresh Claude Code session opened in this folder
 > should be able to build the plugin from this file alone, with no prior conversation context.
 > Read it top to bottom before writing code.
+>
+> **Also read `DECISIONS.md`** — it records decisions that reversed or materially bent a rule
+> here after this file was first written (e.g. the 2026-09-20 decision to drop Dataview
+> due-date interop and pull the aggregated view into v1). This file has been updated to reflect
+> those decisions, but `DECISIONS.md` has the trade-off reasoning if you need the "why."
 
 ---
 
@@ -78,8 +83,8 @@ existing plugin. Two are worth *reading* during implementation:
 | Priority syntax | `(A)`–`(Z)` | pure todo.txt |
 | Projects | `+Project` | pure todo.txt |
 | Contexts | `#tag` | **deliberate deviation** from todo.txt `@context` — uses Obsidian-native tags |
-| Dates | `due:YYYY-MM-DD` (ISO); optional `t:` threshold | human-readable, Dataview-queryable |
-| Location model | one file per "project area" (`Work.md`, `Personal.md`), primary; ad-hoc tasks in daily notes; aggregated view = v1.5 | |
+| Dates | `due:YYYY-MM-DD` (ISO); optional `t:` threshold | human-readable inline text. **Not Dataview-queryable** — Dataview only recognizes bracketed `[key:: value]` fields or a hardcoded set of Tasks-plugin emoji, neither of which this bare todo.txt-native form uses (confirmed empirically 2026-09-20; see `DECISIONS.md`). This is an accepted trade-off, not a bug: the plugin's own aggregated view (below) is the supported way to query by due date. |
+| Location model | one file per "project area" (`Work.md`, `Personal.md`), primary; ad-hoc tasks in daily notes; aggregated view is **v1 scope** (moved up from v1.5 on 2026-09-20 — see `DECISIONS.md`) | |
 | Platform | **Desktop-first (Windows)** | format stays plain-text so Android reads/edits it; no mobile-specific UX in v1 |
 | Aesthetic | clean, keyboard-first, **no emojis**, looks like plain text | this is the whole point |
 | Build vs configure | full TypeScript community plugin | configuring Tasks/Task Genius was rejected — their UI is the problem |
@@ -113,13 +118,20 @@ A task is any Markdown list item that is a checkbox. Canonical token order:
 - **Contexts:** `#tag` (deviation — Obsidian-native, so tag pane / search / Dataview all work
   for free).
 - **Completion:** toggling `- [ ]` → `- [x]` prepends completion date; toggling back removes
-  it. (Open micro-decision below on whether to preserve `(A)` inline vs `pri:A`.)
+  it. Priority is preserved inline (see "Settled micro-decisions" below).
 
-**Interop note (hybrid mapping):** the checkbox itself is what Tasks/Dataview see as a task.
-`due:YYYY-MM-DD` is human-readable and Dataview-queryable as inline text. We are *not* trying
-to render the Tasks plugin's emoji date syntax (`📅`) — that's the clutter being escaped. Our
-own commands/views own priority+date logic; `#tag` contexts are natively indexed. Good-enough
-interop without inheriting the emoji UI.
+**Interop note (hybrid mapping, revised 2026-09-20 — see `DECISIONS.md`):** the checkbox itself
+is what Tasks/Dataview see as a task, and that part still works — a plain Dataview `TASK` query
+lists our tasks fine, and `#tag` contexts are natively indexed for free. `due:YYYY-MM-DD` is
+human-readable but **not Dataview-field-queryable** — confirmed empirically that Dataview only
+parses bracketed `[key:: value]` fields or a hardcoded set of Tasks-plugin calendar emoji
+(📅/📆/🗓️) as queryable fields, and our bare todo.txt-native `due:` token is neither. We are
+*not* adopting the Tasks-plugin emoji date syntax — that's the clutter being escaped, and it's
+the only automatic route to Dataview due-date queries, so we decline it and don't get that
+capability from Dataview. Instead, the plugin's own aggregated view (v1 scope, see below) is the
+supported way to filter/sort by due date, `#context`, or `+project` — it doesn't depend on
+Dataview being installed at all, consistent with "best-effort, no hard dependency"
+(`DESIGN_RULES.md` §3.5).
 
 ### Parse leniency contract (malformed/partial input)
 
@@ -153,9 +165,10 @@ fidelity even for messy input, and gives `parse.test.ts` a concrete fixture tabl
 
 **Completion field handling:** toggling `- [ ]` → `- [x]` prepends the completion date and
 **leaves `due:`/`t:` untouched** — a completed task keeps its due date as a historical record
-(consistent with plain todo.txt convention; also lets Dataview still query "tasks completed
-late" via `due:` vs. completion date). Toggling back off removes the completion date and
-restores the line exactly as it was (round-trip via the preserved original token order).
+(consistent with plain todo.txt convention; also lets the plugin's own aggregated view compute
+"completed late" by comparing `due:` vs. completion date — not a Dataview query, per the
+2026-09-20 interop revision above). Toggling back off removes the completion date and restores
+the line exactly as it was (round-trip via the preserved original token order).
 
 ---
 
@@ -175,7 +188,12 @@ Standard Obsidian plugin scaffold. Module layout:
   ends the block) and the in-place line-rewrite technique.
 - `src/editor.ts` — Obsidian `Editor` glue: find current task line / current list block, apply
   the pure transforms, write back **preserving indentation and cursor position**.
-- `src/view.ts` — (v1.5) aggregated `ItemView`.
+- `src/view.ts` — **v1 scope** (moved up from v1.5 on 2026-09-20, see `DECISIONS.md`) —
+  aggregated `ItemView`: scans project files + daily notes via the vault API, parses each
+  checkbox with `parse.ts`, renders a sortable/filterable flat list (filter by `#context`,
+  `+project`, due window). Clicking a task jumps to its source line. This is the plugin's
+  answer to "query my tasks across files," replacing the Dataview-due-date-query capability
+  that turned out to be unreachable without brackets or emoji (see "Interop note" above).
 
 Keeping all logic in the pure modules is what makes the grammar reliable and the whole thing
 testable without launching Obsidian.
@@ -220,7 +238,7 @@ for us in general:
 Commands (all hotkey-bindable, all operating on the cursor's current line/block):
 
 1. **Increase / Decrease priority** — `bumpPriority`. On a task with no priority, "increase"
-   starts at `(A)` (or a configurable default like `(C)` — see open decisions).
+   starts at `(A)` (settled default — see "Settled micro-decisions").
 2. **Date shortcut expansion** — an editor command *and* an optional as-you-type trigger:
    typing `tod ` in a `due:` position expands to the ISO date. Start with an explicit "expand
    date token" command to avoid fighting the editor; add live expansion later if it feels good.
@@ -229,20 +247,28 @@ Commands (all hotkey-bindable, all operating on the cursor's current line/block)
    rewritten in place. Setting: also offer "sort whole note".
 4. **Toggle done** — prepend/strip completion date (native toggle exists, but ours enforces the
    date convention).
+5. **Aggregated view** (moved up from v1.5 on 2026-09-20 — see `DECISIONS.md`) — an `ItemView`
+   scanning project files + daily notes, parsing each checkbox with `parse.ts`, rendering a
+   sortable/filterable flat list (filter by `#context`, `+project`, due window). Clicking a task
+   jumps to its source line. This is the primary vehicle for querying tasks by due date, since
+   Dataview cannot field-query our bare `due:` syntax (see "Interop note" above).
 
 **Settings tab:** default new-task priority; whether increase-from-none jumps to `(A)`; date
 format (ISO fixed for v1); sort comparator order; weekday token list.
 
-**Testing:** Jest or Vitest unit tests for `parse`, `priority`, `dates`, `sort` — these cover
-the grammar contract and are where bugs will actually live.
+**Testing:** Vitest unit tests for `parse`, `priority`, `dates`, `sort` (settled — see "Settled
+micro-decisions") — these cover the grammar contract and are where bugs will actually live. The
+aggregated view is exercised manually in Obsidian per the Verification section below, since it
+depends on vault-scanning APIs that aren't part of the pure core.
 
 ---
 
 ## v1.5 scope (after v1 is in daily use — do NOT build in v1)
 
-- **Aggregated cross-file view:** an `ItemView` that scans project files + daily notes via the
-  vault API, parses each checkbox with `parse.ts`, and renders a sortable/filterable flat list
-  (filter by `#context`, `+project`, due window). Clicking a task jumps to its source line.
+Currently empty. The aggregated cross-file view — the only item previously listed here — was
+pulled into v1 on 2026-09-20 (see `DECISIONS.md` and v1 scope item 5 above) because it became
+the plugin's answer to task querying once Dataview due-date interop was dropped. Future
+deferred features go here as they're identified; none are currently planned.
 
 ---
 
@@ -282,10 +308,12 @@ the grammar contract and are where bugs will actually live.
   (`DESIGN_RULES.md` §4.1) a build-time check instead of an honor-system rule. Prettier (or
   ESLint's formatting rules) for consistent style; wire both into a `npm run lint` script.
 - `src/main.ts`, `src/parse.ts`, `src/priority.ts`, `src/dates.ts`, `src/sort.ts`,
-  `src/editor.ts`
+  `src/editor.ts`, `src/view.ts` (moved into v1 on 2026-09-20, see `DECISIONS.md` —
+  aggregated cross-file `ItemView` with filter/sort by `#context`/`+project`/due window)
 - `styles.css` (minimal — deliberately no decorative styling)
 - `tests/parse.test.ts`, `tests/dates.test.ts`, `tests/priority.test.ts`,
-  `tests/sort.test.ts`
+  `tests/sort.test.ts` (`view.ts` is exercised manually per Verification step 5, not unit
+  tested — it's vault-scanning Obsidian glue, not pure core)
 - `tests/fixtures/tasks.ts` — a shared array of `{ raw: string, parsed: Task }` fixture pairs
   covering the parse-leniency table above (canonical lines, malformed input, multi-project,
   completion). `parse.test.ts` and `sort.test.ts` both import from here so round-trip ground
@@ -294,7 +322,7 @@ the grammar contract and are where bugs will actually live.
 
 ---
 
-## Verification (end-to-end — do all four)
+## Verification (end-to-end — do all five)
 
 1. **Unit tests pass:** round-trip `parseTaskLine`↔`serializeTask` on a fixture set covering
    priority, dates, `+project`, `#context`, completion; `dates.ts` token expansion against a
@@ -303,13 +331,20 @@ the grammar contract and are where bugs will actually live.
    priority up/down changes `(A)`↔`(B)`↔none on the cursor line; `tod`/`tom`/weekday tokens
    expand to correct ISO dates; sort reorders the block by priority→due; toggle-done prepends
    today's completion date.
-3. **Interop check:** confirm `#context` tags appear in Obsidian's tag pane; a simple Dataview
-   `TASK` query still lists the tasks; **and** a field-filtering query
-   (`TASK WHERE due <= date(today)`) correctly returns only tasks with a matching `due:` value
-   — listing alone doesn't prove the `due:` field is actually queryable, only that the checkbox
-   is visible.
+3. **Interop check (revised 2026-09-20 — see `DECISIONS.md`):** confirm `#context` tags appear
+   in Obsidian's tag pane, and a simple Dataview `TASK` query still lists the tasks (proving
+   existing checkbox-based workflows aren't broken). **Do not** expect a Dataview field query on
+   `due:` to return filtered results — this was tried and confirmed not to work (Dataview only
+   recognizes bracketed `[key:: value]` fields or specific Tasks-plugin emoji, neither of which
+   our bare `due:` syntax is). That capability is intentionally provided by the plugin's own
+   aggregated view instead — verify due-date filtering there (step 5 below), not via Dataview.
 4. **Plain-text/Android safety:** open the file's raw text — confirm it's clean, emoji-free,
    and legible as a portable todo list.
+5. **Aggregated view (new 2026-09-20 — see `DECISIONS.md`):** with tasks spread across at least
+   two files (e.g. `Work.md` and a daily note), open the view and confirm it lists tasks from
+   both; filtering by `#context` and `+project` narrows the list correctly; filtering/sorting by
+   due window (e.g. "due this week") matches only tasks with an in-range `due:` value; clicking
+   a task jumps the editor to its exact source line in the correct file.
 
 ---
 

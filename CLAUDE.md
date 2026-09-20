@@ -11,6 +11,9 @@ Genius plugins.
   session.
 - **`DESIGN_RULES.md`** — the durable rules that govern *all* development beyond v1. Follow
   throughout; don't silently violate — change the rule explicitly if it must change.
+- **`DECISIONS.md`** — trade-off log for decisions that reversed or bent a rule after the fact
+  (e.g. dropping Dataview due-date interop). Check it when something in `PLAN.md`/
+  `DESIGN_RULES.md` looks surprising — there's probably a reasoned trade-off behind it.
 
 ## Non-negotiables (see DESIGN_RULES.md for the full set)
 
@@ -49,7 +52,9 @@ Genius plugins.
 ## v1 commands (all hotkey-bindable, operate on cursor line/block)
 
 Increase/decrease priority · expand date token · sort current checkbox block in place · toggle
-done (with completion date). **Aggregated cross-file view is v1.5 — do not build in v1.**
+done (with completion date) · **aggregated cross-file view** (moved into v1 on 2026-09-20 —
+see `DECISIONS.md` — it replaces Dataview due-date querying, which was investigated and
+confirmed unreachable without bracketed fields or Tasks-plugin emoji, both rejected).
 
 ## Definition of done
 

@@ -2,7 +2,7 @@ import type { Task } from "../../src/parse";
 
 /**
  * Shared ground truth for parse/serialize round-trip tests. Covers the parse-leniency
- * table in PLAN.md — canonical lines, malformed input, multi-project/context, completion.
+ * table in SPEC.md — canonical lines, malformed input, multi-project/context, completion.
  * parse.test.ts and sort.test.ts both import from here so fixtures can't drift apart.
  */
 export interface Fixture {

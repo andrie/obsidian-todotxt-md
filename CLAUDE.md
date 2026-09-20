@@ -7,12 +7,12 @@ Genius plugins.
 
 ## Read these first
 
-- **`PLAN.md`** — what to build (v1 scope, architecture, verification). Start here on a fresh
+- **`SPEC.md`** — what to build (v1 scope, architecture, verification). Start here on a fresh
   session.
 - **`DESIGN_RULES.md`** — the durable rules that govern *all* development beyond v1. Follow
   throughout; don't silently violate — change the rule explicitly if it must change.
 - **`DECISIONS.md`** — trade-off log for decisions that reversed or bent a rule after the fact
-  (e.g. dropping Dataview due-date interop). Check it when something in `PLAN.md`/
+  (e.g. dropping Dataview due-date interop). Check it when something in `SPEC.md`/
   `DESIGN_RULES.md` looks surprising — there's probably a reasoned trade-off behind it.
 
 ## Non-negotiables (see DESIGN_RULES.md for the full set)
@@ -60,4 +60,4 @@ confirmed unreachable without bracketed fields or Tasks-plugin emoji, both rejec
 
 Unit tests green (parse/priority/dates/sort, incl. round-trip and edge cases) **and** behavior
 exercised live in Obsidian **and** interop guard checked (`#tag` indexes, Dataview `TASK`
-query still lists tasks). See `PLAN.md` → Verification.
+query still lists tasks). See `SPEC.md` → Verification.

@@ -1,7 +1,7 @@
 # todotxt-md — Decision Log
 
-> Records decisions that reverse or materially bend a rule in `PLAN.md` or `DESIGN_RULES.md`,
-> along with the trade-off that drove them. `PLAN.md`/`DESIGN_RULES.md` reflect the *current*
+> Records decisions that reverse or materially bend a rule in `SPEC.md` or `DESIGN_RULES.md`,
+> along with the trade-off that drove them. `SPEC.md`/`DESIGN_RULES.md` reflect the *current*
 > state; this file explains *why* it changed. Newest entries first.
 
 ---
@@ -10,7 +10,7 @@
 
 ### Context
 
-The entry immediately below this one (and earlier drafts of `PLAN.md`) describe `due:YYYY-MM-DD`
+The entry immediately below this one (and earlier drafts of `SPEC.md`) describe `due:YYYY-MM-DD`
 as "todo.txt-native" or imply it sits alongside priority/`+project` as core grammar. Checked
 directly against the official spec (github.com/todotxt/todo.txt) after being challenged on this
 claim: the core format defines only priority `(A)`-`(Z)`, creation date, completion date,
@@ -23,7 +23,7 @@ text is literally `due:2010-01-02`.
 `due:` is not core todo.txt grammar, but it is also not an invented deviation — it is the spec's
 own documented example of its own extension mechanism, used exactly as illustrated, and it is a
 widely-adopted ecosystem convention on top of that (todo.txt-cli add-ons, SwiftoDo, and others
-use the same `due:` key). `PLAN.md`'s decisions table and grammar section have been corrected
+use the same `due:` key). `SPEC.md`'s decisions table and grammar section have been corrected
 (2026-09-20) to state this precisely instead of calling it "pure todo.txt." `t:` (threshold)
 rests on the same `key:value` mechanism.
 
@@ -42,7 +42,7 @@ light of this correction rather than as a further claim about spec provenance).
 
 ### Context
 
-`PLAN.md`'s original decisions table claimed `due:YYYY-MM-DD` (bare, single colon, no
+`SPEC.md`'s original decisions table claimed `due:YYYY-MM-DD` (bare, single colon, no
 brackets) would be "Dataview-queryable." Manual verification in a real vault (Obsidian +
 Dataview installed) proved this false: Dataview only recognizes inline fields written as
 `[key:: value]` (bracketed, double colon), or a small hardcoded set of Tasks-plugin emoji
@@ -79,7 +79,7 @@ Dataview's field-parsing quirks at all.
 
 - It resolves the tension by **removing the dependency**, not by bending the grammar to fit
   someone else's parser. The whole reason this plugin exists is to not be at the mercy of
-  another plugin's UI/syntax conventions (see `PLAN.md`'s competitive-landscape section) — this
+  another plugin's UI/syntax conventions (see `SPEC.md`'s competitive-landscape section) — this
   keeps that principle intact for a currency (Dataview's inline-field syntax) that turned out to
   be a bigger constraint than expected.
 - A plugin-owned view can filter/sort/render exactly how this project wants — no visual clutter
@@ -94,9 +94,9 @@ Dataview's field-parsing quirks at all.
   filterable rendering, jump-to-source) is real editor/view-layer work that v1 previously
   deferred specifically to keep scope small (`DESIGN_RULES.md` §6.1, "ship v1 before v1.5").
   This decision explicitly overrides that scope boundary for the view — see the corresponding
-  edit to `PLAN.md`'s v1 scope section.
+  edit to `SPEC.md`'s v1 scope section.
 - **Dataview interop is now explicitly out of scope for dates.** The interop verification step
-  in `PLAN.md` (tag-pane + Dataview `TASK` query) still holds for `#context` tags and basic task
+  in `SPEC.md` (tag-pane + Dataview `TASK` query) still holds for `#context` tags and basic task
   listing — those are unaffected, since tag indexing is native Obsidian behavior, not a Dataview
   field feature. But the due-date field-query verification step is removed; Dataview will never
   see `due:` as a filterable field under this design, by choice.

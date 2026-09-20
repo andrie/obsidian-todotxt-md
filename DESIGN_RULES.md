@@ -1,6 +1,6 @@
 # todotxt-md — Design Rules
 
-> **Purpose.** `PLAN.md` describes *what v1 builds*. This file describes the *durable rules*
+> **Purpose.** `SPEC.md` describes *what v1 builds*. This file describes the *durable rules*
 > that govern the codebase **beyond** the first plan — the invariants every future feature,
 > refactor, and version must respect. When a decision in a future session conflicts with a
 > rule here, either follow the rule or change the rule explicitly in this file (with a note on
@@ -35,13 +35,13 @@
    semantically-equivalent line. Parsing then serializing an untouched task must not reorder or
    drop tokens the user wrote (beyond canonicalization the user opted into). Any grammar change
    ships with round-trip tests.
-3. **Canonical token order** (from `PLAN.md`): `[checkbox] (PRIO) [completion-date]
+3. **Canonical token order** (from `SPEC.md`): `[checkbox] (PRIO) [completion-date]
    [creation-date] description +Project #context due:YYYY-MM-DD [t:YYYY-MM-DD]`. Deviations a
    user typed by hand are preserved on read; canonical order is only enforced when the plugin
    rewrites a line.
 4. **Deliberate deviations from pure todo.txt are documented, not accidental.** Current
    deviations: contexts use `#tag` (not `@context`). Any new deviation must be recorded in
-   `PLAN.md`'s decisions table with a one-line rationale.
+   `SPEC.md`'s decisions table with a one-line rationale.
 5. **Dates are ISO `YYYY-MM-DD` in storage.** Human shortcuts (`tod`, `tom`, weekdays,
    `+3d`) are *input conveniences* expanded at edit time — they are never persisted.
 
@@ -87,13 +87,13 @@
 1. **Core logic is unit-tested; every grammar or behavior change adds/updates a test.** The
    parse/priority/dates/sort modules carry the test burden — that's where bugs live.
 2. **A change to task-editing behavior is not "done" until exercised in Obsidian**, not just
-   green unit tests — per the verification checklist in `PLAN.md`.
+   green unit tests — per the verification checklist in `SPEC.md`.
 3. **Interop regression guard:** after grammar changes, re-confirm `#tag` tags still index in
    Obsidian and a basic Dataview `TASK` query still lists tasks.
 
 ## 6. Scope discipline
 
-1. **Ship v1 before v1.5.** Anything not in `PLAN.md`'s v1 list waits until v1 is in daily use.
+1. **Ship v1 before v1.5.** Anything not in `SPEC.md`'s v1 list waits until v1 is in daily use.
    Resist scope creep into the first release. > **changed 2026-09-20:** the aggregated
    cross-file view was moved from v1.5 into v1 as a deliberate, one-time exception — it became
    the plugin's replacement for Dataview due-date querying (rule 3.5 above), not a scope-creep
@@ -107,7 +107,7 @@
 This document is versioned with the code. When a rule genuinely needs to change:
 - edit it here in the same commit as the code that depends on the change,
 - note the reason inline (a short `> changed: …` blockquote is fine),
-- and, if it alters the stored grammar, reflect it in `PLAN.md`'s decisions table too.
+- and, if it alters the stored grammar, reflect it in `SPEC.md`'s decisions table too.
 
 A rule that's been silently broken by code is a bug in one of the two — reconcile them, don't
 leave them in conflict.

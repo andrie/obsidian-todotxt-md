@@ -1,4 +1,4 @@
-# todotxt-md — Build Plan
+# todotxt-md — Spec
 
 > **This file is the complete build brief.** It was written during a brainstorming session
 > and is intentionally self-contained: a fresh Claude Code session opened in this folder
@@ -376,7 +376,7 @@ deferred features go here as they're identified; none are currently planned.
 ## Settled micro-decisions
 
 - **Completion preserves `(A)` inline** (not moved to `pri:A`) — matches the example in the
-  grammar section (`PLAN.md:101-103`) and keeps the line readable as plain text, which is the
+  grammar section (`SPEC.md:101-103`) and keeps the line readable as plain text, which is the
   whole point (`DESIGN_RULES.md` §1.1).
 - **Explicit "expand date token" command ships first; live-typing expansion is deferred**, and
   is architecturally separate work (see "Editor mechanics" above) — not picked up casually as a

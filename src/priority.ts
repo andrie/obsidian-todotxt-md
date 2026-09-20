@@ -5,7 +5,7 @@ const LAST_PRIORITY = "Z";
 
 /**
  * Cycles a task's priority by +1 (decrease urgency, A -> B) or -1 (increase urgency, B -> A).
- * Increasing from none starts at defaultPriority (PLAN.md: settled on "A"). Decreasing from
+ * Increasing from none starts at defaultPriority (SPEC.md: settled on "A"). Decreasing from
  * "A" clears the priority (cycles to none), matching a bounded A-Z cycle with "none" as an
  * edge state rather than wrapping Z<->A.
  */

@@ -6,7 +6,7 @@ import { sortLines } from "./sort";
 
 /**
  * Obsidian Editor glue. All rewrites go through Editor's replaceRange (CM6 transaction API)
- * per PLAN.md "Editor mechanics" — never mutate the document string directly. Every command
+ * per SPEC.md "Editor mechanics" — never mutate the document string directly. Every command
  * checks for a parseable task line before acting and no-ops silently otherwise (DESIGN_RULES.md
  * section 1.4, "assist, don't nag").
  */
@@ -27,7 +27,7 @@ function replaceLine(editor: Editor, lineNumber: number, newText: string): void 
 /**
  * Bumps priority on the cursor's line. No-ops if the cursor isn't on a task line.
  * Priority bumps never change line length before the description, so the cursor's
- * column is preserved as-is (per PLAN.md: only operations that shift text before the
+ * column is preserved as-is (per SPEC.md: only operations that shift text before the
  * cursor need to recompute its offset).
  */
 export function bumpPriorityAtCursor(editor: Editor, direction: 1 | -1): void {
@@ -50,7 +50,7 @@ export function bumpPriorityAtCursor(editor: Editor, direction: 1 | -1): void {
 /**
  * Expands a recognized date-shortcut token immediately before the cursor (e.g. "tod",
  * "+3d") to its ISO form. No-ops if there's no recognized token there. Explicit command
- * only for v1 — live-typing expansion is separately scoped (PLAN.md "Editor mechanics").
+ * only for v1 — live-typing expansion is separately scoped (SPEC.md "Editor mechanics").
  */
 export function expandDateTokenAtCursor(editor: Editor, clock: Clock): void {
 	const cursor = editor.getCursor();
@@ -72,7 +72,7 @@ export function expandDateTokenAtCursor(editor: Editor, clock: Clock): void {
 /**
  * Sorts the contiguous checkbox block containing the cursor, rewritten in place. Cursor is
  * re-anchored to the same task (tracked by its original line text) rather than the same line
- * index, since sorting changes which task occupies which line (PLAN.md "Editor mechanics").
+ * index, since sorting changes which task occupies which line (SPEC.md "Editor mechanics").
  */
 export function sortBlockAtCursor(editor: Editor): void {
 	const cursor = editor.getCursor();
@@ -111,7 +111,7 @@ export function sortBlockAtCursor(editor: Editor): void {
 
 /**
  * Toggles done state on the cursor's line, prepending/stripping the completion date per the
- * todo.txt convention. due:/t: are left untouched on completion (PLAN.md "Completion field
+ * todo.txt convention. due:/t: are left untouched on completion (SPEC.md "Completion field
  * handling") — a completed task keeps its due date as a historical record.
  */
 export function toggleDoneAtCursor(editor: Editor, clock: Clock): void {

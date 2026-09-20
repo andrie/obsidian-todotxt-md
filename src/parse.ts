@@ -1,5 +1,5 @@
 /**
- * Single source of truth for the task-line grammar (see PLAN.md "Task line grammar" and
+ * Single source of truth for the task-line grammar (see SPEC.md "Task line grammar" and
  * "Parse leniency contract"). No other module may parse or emit task syntax with ad-hoc
  * regex — operate on the parsed Task, not raw strings.
  */
@@ -29,7 +29,7 @@ const LEADING_DATE_RE = /^(\d{4}-\d{2}-\d{2})\s+/;
 
 /**
  * Parses a single line. Returns null iff the line is not a Markdown checkbox — that is the
- * only gate (see PLAN.md "Parse leniency contract"). Once a line passes the checkbox gate,
+ * only gate (see SPEC.md "Parse leniency contract"). Once a line passes the checkbox gate,
  * the body always parses successfully: recognized tokens populate Task fields in the order
  * they appear, and anything the grammar doesn't recognize (out-of-position tokens,
  * duplicates, non-ISO dates) is preserved verbatim in `description` rather than dropped.
@@ -119,7 +119,7 @@ export function parseTaskLine(line: string): Task | null {
 
 /**
  * Reproduces a semantically-equivalent line for a Task produced by parseTaskLine, in
- * canonical token order (see PLAN.md "canonical token order" / DESIGN_RULES.md section 2.3).
+ * canonical token order (see SPEC.md "canonical token order" / DESIGN_RULES.md section 2.3).
  * Any tokens the parser couldn't place stay in `description` as literal text and are
  * reproduced there, satisfying round-trip fidelity for messy input.
  */

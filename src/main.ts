@@ -5,14 +5,17 @@ import {
 	sortBlockAtCursor,
 	toggleDoneAtCursor,
 } from "./editor";
+import { DateShortcutSuggest } from "./dateSuggest";
 import type { Clock } from "./dates";
 
 interface TodotxtMdSettings {
 	defaultPriority: string;
+	enableDateSuggest: boolean;
 }
 
 const DEFAULT_SETTINGS: TodotxtMdSettings = {
 	defaultPriority: "A",
+	enableDateSuggest: true,
 };
 
 function isValidPriority(value: unknown): value is string {
@@ -23,9 +26,14 @@ const systemClock: Clock = () => new Date();
 
 export default class TodotxtMdPlugin extends Plugin {
 	settings: TodotxtMdSettings = DEFAULT_SETTINGS;
+	dateSuggest!: DateShortcutSuggest;
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
+
+		this.dateSuggest = new DateShortcutSuggest(this.app, systemClock);
+		this.dateSuggest.setEnabled(this.settings.enableDateSuggest);
+		this.registerEditorSuggest(this.dateSuggest);
 
 		this.addCommand({
 			id: "increase-priority",
@@ -67,6 +75,10 @@ export default class TodotxtMdPlugin extends Plugin {
 				loaded && isValidPriority(loaded.defaultPriority)
 					? loaded.defaultPriority
 					: DEFAULT_SETTINGS.defaultPriority,
+			enableDateSuggest:
+				loaded && typeof loaded.enableDateSuggest === "boolean"
+					? loaded.enableDateSuggest
+					: DEFAULT_SETTINGS.enableDateSuggest,
 		};
 	}
 
@@ -97,6 +109,17 @@ class TodotxtMdSettingTab extends PluginSettingTab {
 						this.plugin.settings.defaultPriority = upper;
 						await this.plugin.saveSettings();
 					}
+				}),
+			);
+
+		new Setting(containerEl)
+			.setName("Date shortcut suggestions")
+			.setDesc('Show a live popup with date-shortcut suggestions after typing "due:" or "t:".')
+			.addToggle((toggle) =>
+				toggle.setValue(this.plugin.settings.enableDateSuggest).onChange(async (value) => {
+					this.plugin.settings.enableDateSuggest = value;
+					this.plugin.dateSuggest.setEnabled(value);
+					await this.plugin.saveSettings();
 				}),
 			);
 	}

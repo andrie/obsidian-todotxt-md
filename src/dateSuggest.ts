@@ -10,7 +10,7 @@ import {
 import { parseTaskLine } from "./parse";
 import { suggestDateShortcuts, type DateShortcutSuggestion, type Clock } from "./dates";
 
-const TRIGGER_RE = /(?:due|t):([A-Za-z0-9+]*)$/;
+const TRIGGER_RE = /(?:^|\s)(?:due|t):([A-Za-z0-9+]*)$/;
 
 /**
  * Live date-shortcut popup. Triggers only immediately after "due:" or "t:" on a checkbox

@@ -83,7 +83,7 @@ existing plugin. Two are worth *reading* during implementation:
 | Priority syntax | `(A)`–`(Z)` | pure todo.txt |
 | Projects | `+Project` | pure todo.txt |
 | Contexts | `#tag` | **deliberate deviation** from todo.txt `@context` — uses Obsidian-native tags |
-| Dates | `due:YYYY-MM-DD` (ISO); optional `t:` threshold | human-readable inline text. **Not Dataview-queryable** — Dataview only recognizes bracketed `[key:: value]` fields or a hardcoded set of Tasks-plugin emoji, neither of which this bare todo.txt-native form uses (confirmed empirically 2026-09-20; see `DECISIONS.md`). This is an accepted trade-off, not a bug: the plugin's own aggregated view (below) is the supported way to query by due date. |
+| Dates | `due:YYYY-MM-DD` (ISO); optional `t:` threshold | **Not core todo.txt** (corrected 2026-09-20 — see `DECISIONS.md`): the official spec (github.com/todotxt/todo.txt) defines only priority, creation date, completion date, `+project`, `@context` as native fields. `key:value` is a spec'd *extension mechanism* for tool developers, and `due:2010-01-02` is literally the spec's own example of that mechanism — so `due:` is "the spec's documented extension pattern, used as intended," not core grammar and not an invented deviation either. Human-readable inline text. **Not Dataview-queryable** — Dataview only recognizes bracketed `[key:: value]` fields or a hardcoded set of Tasks-plugin emoji, neither of which this bare `key:value` form uses (confirmed empirically 2026-09-20; see `DECISIONS.md`). This is an accepted trade-off, not a bug: the plugin's own aggregated view (below) is the supported way to query by due date. |
 | Location model | one file per "project area" (`Work.md`, `Personal.md`), primary; ad-hoc tasks in daily notes; aggregated view is **v1 scope** (moved up from v1.5 on 2026-09-20 — see `DECISIONS.md`) | |
 | Platform | **Desktop-first (Windows)** | format stays plain-text so Android reads/edits it; no mobile-specific UX in v1 |
 | Aesthetic | clean, keyboard-first, **no emojis**, looks like plain text | this is the whole point |
@@ -112,20 +112,33 @@ A task is any Markdown list item that is a checkbox. Canonical token order:
 ```
 
 - **Priority:** `(A)`–`(Z)` immediately after the checkbox. Absence = no priority.
-- **Dates:** ISO `YYYY-MM-DD`. `due:` is the key date field; optionally support `t:`
-  (threshold/start). Bare leading date = creation date (todo.txt convention).
+- **Dates:** ISO `YYYY-MM-DD`. `due:` is the key date field, using todo.txt's spec'd
+  `key:value` extension mechanism (see "Interop note" below — not a core spec field, but the
+  spec's own documented example); optionally support `t:` (threshold/start), the same
+  mechanism. Bare leading date = creation date (this one **is** core todo.txt spec).
 - **Projects:** `+Project` (todo.txt-native; Dataview indexes as inline text — acceptable).
 - **Contexts:** `#tag` (deviation — Obsidian-native, so tag pane / search / Dataview all work
   for free).
 - **Completion:** toggling `- [ ]` → `- [x]` prepends completion date; toggling back removes
   it. Priority is preserved inline (see "Settled micro-decisions" below).
 
+**Grammar provenance correction (2026-09-20 — see `DECISIONS.md`):** earlier drafts of this
+file called `due:` "pure todo.txt." That's imprecise. Per the official spec
+(github.com/todotxt/todo.txt), the *core* format defines only priority, creation date,
+completion date, `+project`, `@context` — no due-date field. The spec separately defines a
+generic `key:value` **extension mechanism** for tool developers, and its own worked example is
+literally `due:2010-01-02`. So `due:` is "the spec's documented extension pattern, applied
+exactly as the spec illustrates it" — not core grammar, but also not an invented convention;
+it's arguably the most standard possible choice for a due-date field precisely because it's the
+spec's own example. `t:` (threshold) is the same mechanism, a widely-used ecosystem convention
+(e.g. todo.txt-cli add-ons, SwiftoDo) built on the same `key:value` pattern.
+
 **Interop note (hybrid mapping, revised 2026-09-20 — see `DECISIONS.md`):** the checkbox itself
 is what Tasks/Dataview see as a task, and that part still works — a plain Dataview `TASK` query
 lists our tasks fine, and `#tag` contexts are natively indexed for free. `due:YYYY-MM-DD` is
 human-readable but **not Dataview-field-queryable** — confirmed empirically that Dataview only
 parses bracketed `[key:: value]` fields or a hardcoded set of Tasks-plugin calendar emoji
-(📅/📆/🗓️) as queryable fields, and our bare todo.txt-native `due:` token is neither. We are
+(📅/📆/🗓️) as queryable fields, and our bare `key:value`-style `due:` token is neither. We are
 *not* adopting the Tasks-plugin emoji date syntax — that's the clutter being escaped, and it's
 the only automatic route to Dataview due-date queries, so we decline it and don't get that
 capability from Dataview. Instead, the plugin's own aggregated view (v1 scope, see below) is the

@@ -6,6 +6,38 @@
 
 ---
 
+## 2026-09-20 — Correction: `due:` is not "pure todo.txt" — it's the spec's own extension example
+
+### Context
+
+The entry immediately below this one (and earlier drafts of `PLAN.md`) describe `due:YYYY-MM-DD`
+as "todo.txt-native" or imply it sits alongside priority/`+project` as core grammar. Checked
+directly against the official spec (github.com/todotxt/todo.txt) after being challenged on this
+claim: the core format defines only priority `(A)`-`(Z)`, creation date, completion date,
+`+project`, `@context`. There is no native due-date field. The spec separately defines a generic
+`key:value` **extension mechanism** for tool developers — and its own worked example in the spec
+text is literally `due:2010-01-02`.
+
+### Correction
+
+`due:` is not core todo.txt grammar, but it is also not an invented deviation — it is the spec's
+own documented example of its own extension mechanism, used exactly as illustrated, and it is a
+widely-adopted ecosystem convention on top of that (todo.txt-cli add-ons, SwiftoDo, and others
+use the same `due:` key). `PLAN.md`'s decisions table and grammar section have been corrected
+(2026-09-20) to state this precisely instead of calling it "pure todo.txt." `t:` (threshold)
+rests on the same `key:value` mechanism.
+
+### Why this matters here
+
+None of the *decisions* below change as a result — the Dataview-interop trade-off, the
+aggregated-view scope pull-forward, and the emoji-rejection all stand regardless of whether
+`due:` is core spec or the spec's own extension example. This entry exists purely to correct a
+factual overstatement in the project's own documentation before it propagated further (e.g. into
+this file's Option 1/3 descriptions below, which use "todo.txt-native" loosely — read those in
+light of this correction rather than as a further claim about spec provenance).
+
+---
+
 ## 2026-09-20 — Drop Dataview due-date interop; build the aggregated view natively, pulled into v1
 
 ### Context

@@ -57,3 +57,54 @@ export function expandDateToken(token: string, clock: Clock): string | null {
 
 	return null;
 }
+
+export interface DateShortcutSuggestion {
+	/** The shortcut token as the user would type it, e.g. "tod", "mon", "+3d". */
+	token: string;
+	/** Resolved ISO date, e.g. "2026-09-20". Null only for the relative-offset pattern hint. */
+	iso: string | null;
+	/** Short human label shown alongside the date, e.g. "today", "next Monday". */
+	label: string;
+}
+
+const WEEKDAY_LABELS: Record<string, string> = {
+	sun: "Sunday",
+	mon: "Monday",
+	tue: "Tuesday",
+	wed: "Wednesday",
+	thu: "Thursday",
+	fri: "Friday",
+	sat: "Saturday",
+};
+
+/**
+ * Enumerates date-shortcut suggestions whose token starts with `partial` (case-insensitive).
+ * Used by the live-suggestion popup (dateSuggest.ts) to show multiple candidates as the user
+ * types; distinct from expandDateToken, which resolves one *complete* token. Pure/deterministic
+ * via the same injected clock. Returns [] for an unmatched partial — the caller decides whether
+ * to show a popup at all (this function does not gate on "should a popup appear").
+ */
+export function suggestDateShortcuts(partial: string, clock: Clock): DateShortcutSuggestion[] {
+	const lower = partial.toLowerCase();
+
+	if (lower.startsWith("+")) {
+		if (RELATIVE_RE.test(lower)) {
+			const iso = expandDateToken(lower, clock);
+			return iso ? [{ token: lower, iso, label: "relative offset" }] : [];
+		}
+		if (/^\+\d*$/.test(lower)) {
+			return [{ token: "+Nd", iso: null, label: "relative offset, e.g. +3d or +1w" }];
+		}
+		return [];
+	}
+
+	const candidates: Array<{ token: string; label: string }> = [
+		{ token: "tod", label: "today" },
+		{ token: "tom", label: "tomorrow" },
+		...WEEKDAYS.map((day) => ({ token: day, label: WEEKDAY_LABELS[day] })),
+	];
+
+	return candidates
+		.filter((c) => c.token.startsWith(lower))
+		.map((c) => ({ token: c.token, iso: expandDateToken(c.token, clock), label: c.label }));
+}

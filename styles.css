@@ -1,1 +1,13 @@
 /* Deliberately minimal — no decorative styling. Plain text is the product. */
+
+.todotxt-md-date-suggestion-token {
+	font-weight: 600;
+}
+
+.todotxt-md-date-suggestion-date {
+	color: var(--text-accent);
+}
+
+.todotxt-md-date-suggestion-label {
+	color: var(--text-muted);
+}

@@ -13,12 +13,18 @@ export default [
 			parserOptions: {
 				sourceType: "module",
 			},
+			globals: {
+				HTMLElement: "readonly",
+				MouseEvent: "readonly",
+				KeyboardEvent: "readonly",
+			},
 		},
 		plugins: {
 			"@typescript-eslint": tseslint,
 		},
 		rules: {
 			...tseslint.configs.recommended.rules,
+			"@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
 		},
 	},
 	{

@@ -244,6 +244,18 @@ for us in general:
   than running on command invocation. Budget it as a separate implementation task if/when it's
   picked up, not an afterthought once the explicit command works.
 
+**Built 2026-09-20** (`src/dateSuggest.ts`, see
+`docs/superpowers/plans/2026-09-20-date-suggest-and-aggregated-view.md`): live-typing expansion
+was implemented via `EditorSuggest`, and manual testing surfaced exactly the kind of subtle
+trigger-boundary bug this section warns about in the abstract — the first version's trigger
+regex matched `due:`/`t:` as a bare substring anywhere in the line, so a `#due` or `#t` context
+tag followed by a colon (e.g. `#due:tod`) incorrectly fired the popup. Fixed by requiring the
+`due:`/`t:` prefix to start at a word boundary (line-start or preceding whitespace), matching how
+`parse.ts`'s tokenizer actually recognizes the field. Lesson for future `EditorSuggest`/CM6
+trigger logic: **substring matches on grammar tokens are not enough — always require the same
+boundary conditions the parser itself enforces**, or the trigger will fire in contexts the
+grammar wouldn't recognize as that token.
+
 ---
 
 ## v1 scope (ship this first)

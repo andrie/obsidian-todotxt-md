@@ -1,6 +1,7 @@
 import { ItemView, WorkspaceLeaf, TFile, debounce, type Editor } from "obsidian";
 import type TodotxtMdPlugin from "./main";
-import { parseTaskLine } from "./parse";
+import { parseTaskLine, serializeTask } from "./parse";
+import { toggleDone } from "./editor";
 import { aggregateTasks, DEFAULT_FILTER, type AggregateFilter, type TaskRecord } from "./aggregate";
 import type { Clock } from "./dates";
 
@@ -92,8 +93,17 @@ export class AggregatedTaskView extends ItemView {
 
 		for (const record of visible) {
 			const item = listEl.createDiv({ cls: "todotxt-md-task-item" });
-			item.setText(this.formatTaskLabel(record));
-			item.addEventListener("click", () => {
+			if (record.task.done) item.addClass("is-done");
+
+			const checkbox = item.createEl("input", { type: "checkbox" });
+			checkbox.checked = record.task.done;
+			checkbox.addEventListener("click", (evt) => {
+				evt.stopPropagation();
+				void this.toggleRecordDone(record);
+			});
+
+			const label = item.createSpan({ text: this.formatTaskLabel(record) });
+			label.addEventListener("click", () => {
 				void this.jumpToTask(record);
 			});
 		}
@@ -153,5 +163,23 @@ export class AggregatedTaskView extends ItemView {
 		if (view.editor) {
 			view.editor.setCursor({ line: record.line, ch: 0 });
 		}
+	}
+
+	private async toggleRecordDone(record: TaskRecord): Promise<void> {
+		const file = this.app.vault.getAbstractFileByPath(record.filePath);
+		if (!(file instanceof TFile)) return;
+
+		const content = await this.app.vault.read(file);
+		const lines = content.split("\n");
+		const lineText = lines[record.line];
+		const task = parseTaskLine(lineText);
+		if (!task) return;
+
+		const updated = toggleDone(task, this.clock);
+		lines[record.line] = serializeTask(updated);
+		await this.app.vault.modify(file, lines.join("\n"));
+
+		record.task = updated;
+		this.render();
 	}
 }

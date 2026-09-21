@@ -14,6 +14,13 @@ export class AggregatedTaskView extends ItemView {
 	private filter: AggregateFilter = { ...DEFAULT_FILTER };
 	private records: TaskRecord[] = [];
 	private clock: Clock;
+	/**
+	 * The record most recently toggled via the checkbox, kept visible through the very next
+	 * render pass even if the current filter would otherwise exclude it (e.g. checking off a
+	 * not-done task while "Include done" is off). Cleared after that render so a subsequent
+	 * rescan or filter change applies the filter normally. See task-2 review fix.
+	 */
+	private justToggled: TaskRecord | null = null;
 
 	private readonly handleVaultChange = debounce(
 		() => {
@@ -85,6 +92,11 @@ export class AggregatedTaskView extends ItemView {
 
 		const listEl = container.createDiv({ cls: "todotxt-md-task-list" });
 		const visible = aggregateTasks(this.records, this.filter, this.clock);
+
+		if (this.justToggled && !visible.includes(this.justToggled)) {
+			visible.push(this.justToggled);
+		}
+		this.justToggled = null;
 
 		if (visible.length === 0) {
 			listEl.createDiv({ text: "No matching tasks.", cls: "todotxt-md-empty" });
@@ -180,6 +192,7 @@ export class AggregatedTaskView extends ItemView {
 		await this.app.vault.modify(file, lines.join("\n"));
 
 		record.task = updated;
+		this.justToggled = record;
 		this.render();
 	}
 }

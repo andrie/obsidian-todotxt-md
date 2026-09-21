@@ -110,9 +110,21 @@ export function sortBlockAtCursor(editor: Editor): void {
 }
 
 /**
- * Toggles done state on the cursor's line, prepending/stripping the completion date per the
- * todo.txt convention. due:/t: are left untouched on completion (SPEC.md "Completion field
- * handling") — a completed task keeps its due date as a historical record.
+ * Toggles done state on a Task, prepending/stripping the completion date per the todo.txt
+ * convention. due:/t: are left untouched on completion (SPEC.md "Completion field handling")
+ * — a completed task keeps its due date as a historical record. Pure: no Obsidian types, so
+ * it's reusable by both the cursor-based command below and the aggregated view's checkbox
+ * (view.ts), which has no open Editor to operate on.
+ */
+export function toggleDone(task: Task, clock: Clock): Task {
+	return task.done
+		? { ...task, done: false, completionDate: null }
+		: { ...task, done: true, completionDate: expandDateToken("tod", clock) };
+}
+
+/**
+ * Toggles done state on the cursor's line, via toggleDone. No-ops if the cursor isn't on a
+ * task line.
  */
 export function toggleDoneAtCursor(editor: Editor, clock: Clock): void {
 	const found = currentLineTask(editor);
@@ -122,9 +134,7 @@ export function toggleDoneAtCursor(editor: Editor, clock: Clock): void {
 	const cursor = editor.getCursor();
 	const before = serializeTask(task);
 
-	const updated: Task = task.done
-		? { ...task, done: false, completionDate: null }
-		: { ...task, done: true, completionDate: expandDateToken("tod", clock) };
+	const updated = toggleDone(task, clock);
 
 	const after = serializeTask(updated);
 	replaceLine(editor, lineNumber, after);

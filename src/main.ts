@@ -62,13 +62,15 @@ export default class TodotxtMdPlugin extends Plugin {
 		this.addCommand({
 			id: "increase-priority",
 			name: "Increase priority",
-			editorCallback: (editor) => bumpPriorityAtCursor(editor, -1),
+			editorCallback: (editor) =>
+				bumpPriorityAtCursor(editor, -1, this.settings.defaultPriority),
 		});
 
 		this.addCommand({
 			id: "decrease-priority",
 			name: "Decrease priority",
-			editorCallback: (editor) => bumpPriorityAtCursor(editor, 1),
+			editorCallback: (editor) =>
+				bumpPriorityAtCursor(editor, 1, this.settings.defaultPriority),
 		});
 
 		this.addCommand({

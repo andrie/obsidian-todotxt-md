@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { parseTaskLine } from "../src/parse";
-import { toggleDone } from "../src/editor";
+import { toggleDone, bumpPriorityAtCursor } from "../src/editor";
 import type { Clock } from "../src/dates";
 
 const fixedClock: Clock = () => new Date(2026, 8, 19);
@@ -36,5 +36,29 @@ describe("toggleDone", () => {
 		const input = task("- [ ] Call the bank");
 		toggleDone(input, fixedClock);
 		expect(input.done).toBe(false);
+	});
+});
+
+describe("bumpPriorityAtCursor", () => {
+	function fakeEditor(line: string) {
+		let text = line;
+		let cursor = { line: 0, ch: 0 };
+		return {
+			getCursor: () => cursor,
+			getLine: (n: number) => (n === 0 ? text : ""),
+			replaceRange: (newText: string) => {
+				text = newText;
+			},
+			setCursor: (pos: { line: number; ch: number }) => {
+				cursor = pos;
+			},
+			getText: () => text,
+		};
+	}
+
+	it("passes the configured default priority through when increasing from none", () => {
+		const editor = fakeEditor("- [ ] Call the bank");
+		bumpPriorityAtCursor(editor as never, -1, "C");
+		expect(editor.getText()).toContain("(C)");
 	});
 });

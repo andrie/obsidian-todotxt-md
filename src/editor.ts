@@ -30,14 +30,18 @@ function replaceLine(editor: Editor, lineNumber: number, newText: string): void 
  * column is preserved as-is (per SPEC.md: only operations that shift text before the
  * cursor need to recompute its offset).
  */
-export function bumpPriorityAtCursor(editor: Editor, direction: 1 | -1): void {
+export function bumpPriorityAtCursor(
+	editor: Editor,
+	direction: 1 | -1,
+	defaultPriority: string,
+): void {
 	const found = currentLineTask(editor);
 	if (!found) return;
 
 	const { task, lineNumber } = found;
 	const cursor = editor.getCursor();
 	const before = serializeTask(task);
-	const updated = bumpPriority(task, direction);
+	const updated = bumpPriority(task, direction, defaultPriority);
 	const after = serializeTask(updated);
 
 	replaceLine(editor, lineNumber, after);

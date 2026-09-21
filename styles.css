@@ -1,11 +1,30 @@
 /* Deliberately minimal — no decorative styling. Plain text is the product. */
 
+/* @settings
+name: Todo.txt MD
+id: todotxt-md
+settings:
+  - id: todotxt-md-done-color
+    title: Completed Task Color
+    description: Color for completed (struck-through) rows in the aggregated task view
+    type: variable-color
+    format: hex
+    default: '#808080'
+
+  - id: todotxt-md-date-suggestion-color
+    title: Date Suggestion Color
+    description: Color for the resolved ISO date in the "due:tod" suggestion popup
+    type: variable-color
+    format: hex
+    default: '#4285F4'
+*/
+
 .todotxt-md-date-suggestion-token {
 	font-weight: 600;
 }
 
 .todotxt-md-date-suggestion-date {
-	color: var(--text-accent);
+	color: var(--todotxt-md-date-suggestion-color, var(--text-accent));
 }
 
 .todotxt-md-date-suggestion-label {
@@ -33,7 +52,7 @@
 }
 
 .todotxt-md-task-item.is-done {
-	color: var(--text-muted);
+	color: var(--todotxt-md-done-color, var(--text-muted));
 	text-decoration: line-through;
 }
 

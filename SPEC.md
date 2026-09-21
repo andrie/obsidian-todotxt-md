@@ -51,9 +51,17 @@ The ecosystem splits into two camps; this project falls **between** them:
 
 - **Dedicated-file todo.txt plugins** — [rioskit/obsidian-todo-txt-mode](https://github.com/rioskit/obsidian-todo-txt-mode)
   and [mvgrimes/obsidian-todotxt-plugin](https://github.com/mvgrimes/obsidian-todotxt-plugin).
-  Both operate **only on dedicated `.todotxt` files**, not Markdown checkboxes in normal notes.
-  Neither has priority hotkeys, `tod` date shortcuts, or `#tag` contexts. Breaks the "create a
-  task anywhere as a normal checkbox" requirement.
+  **Correction (2026-09-21 — see `DECISIONS.md`):** an earlier version of this entry claimed
+  both plugins operate "only on dedicated `.todotxt` files." That's imprecise for
+  `rioskit/obsidian-todo-txt-mode`: it identifies target files via `isTodoTxtFile()`, which
+  matches user-configured file *paths* (`settings.todoFilePaths`/`doneFilePath`), not a `.txt`
+  file-extension check — so a user could point it at a Markdown note. What it does *not* do is
+  operate on Markdown **checkboxes** (`- [ ]`): its syntax highlighting, auto-completion-date,
+  and recurring-task logic target raw todo.txt-style lines (`x 2023-05-08 task ...`,
+  `(A) task ...`) typed directly into a file, not checkbox list items. Neither plugin has
+  priority hotkeys, `tod` date shortcuts, or `#tag` contexts. Breaks the "create a task anywhere
+  as a normal checkbox" requirement — but via the checkbox distinction, not a file-extension
+  restriction.
 - **In-place Markdown-checkbox plugins** — [artem98/obsidian_tasks_sort](https://github.com/artem98/obsidian_tasks_sort)
   (physically sorts the checkbox block under the cursor) and **Prioritize**
   (set/remove/increase/decrease priority via hotkey-bindable commands). Both use the
@@ -163,6 +171,7 @@ duplicates, and free text — is preserved verbatim in an `extra`/raw-remainder 
 | `- [ ] Call the bank` | Parses fine; no priority/dates/project/context; `description` = full text. |
 | `- [ ] Call (A) the bank` | `(A)` is **not** treated as priority — priority is only recognized in the leading position immediately after the checkbox (see grammar above). It stays in `description` as literal text. This is a position rule, not a "looks like priority" rule. |
 | `- [ ] (A) (B) Call the bank` | First `(A)` is the priority. Second `(B)` is left in `description` as literal text (only one priority token is ever recognized, at the leading position). |
+| `- [ ] (C) 2026-09-21 2026-09-22 Do some action` | **Two leading dates on a not-done task are not spec-valid syntax** — per the official todo.txt spec, the two-leading-dates form (`x <completion-date> <creation-date> ...`) is defined only for completed (`x`-marked) tasks. A not-done task has exactly one leading-date slot (`creationDate`). Here, `2026-09-21` fills that slot; `2026-09-22` is **not** a second recognized date field — it's left as literal text at the front of `description` (`description` = `"2026-09-22 Do some action"`), same leniency rule as the `(A) (B)` case above (only one leading-position token per kind is ever recognized). Not a bug: this is correct behavior per spec, not an extension of leniency to a spec-invalid pattern. |
 | `- [ ] Call the bank due:2026-09-25 due:2026-09-30` | First `due:` wins and populates `Task.due`; the second `due:2026-09-30` is left in `description` as literal text (not silently dropped, not silently overwritten-then-discarded). **Known grammar ambiguity:** `serializeTask` writes canonical order, so the literal `due:2026-09-30` (now part of `description`) is emitted *before* the structured `due:2026-09-25` field — a rewrite this plugin performs reorders duplicate-looking tokens, same as it would reorder any other token relative to hand-typed order (`DESIGN_RULES.md` section 2.3). Re-parsing the rewritten line swaps which `due:` is "the field" vs. literal text. No data is lost (both values persist across any number of rewrites), but which one is structured vs. literal is not stable under repeated edits. Accepted as an inherent ambiguity of duplicate keys, not a bug; see `tests/fixtures/tasks.ts`'s `skipRoundTrip` flag. |
 | `- [ ] +Proj1 +Proj2 Call the bank` | **Multiple `+Project`/`#context` tokens are all captured**, in the order they appear, into `Task.projects: string[]` / `Task.contexts: string[]` (not deduplicated, not sorted — user's order is preserved on round-trip). |
 | `- [ ] due:2026-9-5 Call the bank` | Non-ISO date (`2026-9-5`, not zero-padded) is **not** recognized as a valid `due:` token — left as literal text in `description`. Only strict `YYYY-MM-DD` is extracted. This avoids silently "fixing" a date the user may have meant differently. |

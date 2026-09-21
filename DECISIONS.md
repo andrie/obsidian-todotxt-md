@@ -6,6 +6,48 @@
 
 ---
 
+## 2026-09-21 — Correction: rioskit/obsidian-todo-txt-mode is not file-extension-restricted
+
+### Context
+
+`SPEC.md`'s competitive-landscape section (written 2026-09-19) claimed
+`rioskit/obsidian-todo-txt-mode` and `mvgrimes/obsidian-todotxt-plugin` "operate only on
+dedicated `.todotxt` files, not Markdown checkboxes in normal notes." The user flagged this
+plugin as a possible gap in the original research and asked for a careful re-check against the
+actual repo, rather than accepting either the original claim or the concern at face value.
+
+### What was actually verified (2026-09-21)
+
+Reading `rioskit/obsidian-todo-txt-mode`'s source directly (`src/main.ts`) shows it targets
+files via `isTodoTxtFile()`, which checks whether a file's **path** matches
+`settings.todoFilePaths` or `settings.doneFilePath` — a user-configured path list, not a file
+*extension* check. So the plugin is not restricted to `.txt`/`.todotxt` files; a user could
+point it at a Markdown note and get its syntax highlighting, auto-completion-date, and
+recurring-task features there.
+
+However, re-reading `src/syntax.ts` and `src/task-watcher.ts` confirms what it actually
+highlights/watches: raw todo.txt-formatted lines (`x 2023-05-08 task ...`, `(A) task ...`)
+typed directly in the file — not Markdown checkbox list items (`- [ ]`). It has no concept of a
+checkbox at all. It also confirmed to have no priority-bump hotkeys, no `tod`/`tom` date-entry
+shortcuts, and `@context` (not `#tag`).
+
+### Correction
+
+The "operates only on dedicated `.todotxt` files" claim in `SPEC.md` was imprecise and has been
+corrected to describe the actual mechanism (path-based file targeting, not extension-based) and
+the actual distinguishing gap (no Markdown-checkbox support, not a file-type restriction).
+
+### Why this doesn't change the project's conclusion
+
+The core "no plugin combines Markdown checkboxes + emoji-free todo.txt tokens + priority
+hotkeys + date expansion + in-place sort + `#tag` contexts" conclusion in `SPEC.md` still holds
+— `rioskit/obsidian-todo-txt-mode` still has none of priority hotkeys, date shortcuts, or
+checkbox-based task creation, regardless of which files it can be pointed at. The correction is
+about precision in *why* the gap exists (checkbox support, not file extension), not about
+whether the gap exists.
+
+---
+
 ## 2026-09-20 — Correction: `due:` is not "pure todo.txt" — it's the spec's own extension example
 
 ### Context

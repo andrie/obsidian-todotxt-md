@@ -2,7 +2,7 @@ import type { Editor, EditorPosition } from "obsidian";
 import { parseTaskLine, serializeTask, type Task } from "./parse";
 import { bumpPriority } from "./priority";
 import { expandDateToken, type Clock } from "./dates";
-import { sortLines, defaultComparator } from "./sort";
+import { defaultComparator } from "./sort";
 
 /**
  * Obsidian Editor glue. All rewrites go through Editor's replaceRange (CM6 transaction API)
@@ -75,8 +75,9 @@ export function expandDateTokenAtCursor(editor: Editor, clock: Clock): void {
 
 /**
  * Sorts the contiguous checkbox block containing the cursor, rewritten in place. Cursor is
- * re-anchored to the same task (tracked by its original line text) rather than the same line
- * index, since sorting changes which task occupies which line (SPEC.md "Editor mechanics").
+ * re-anchored by tracking the cursor's original array index through the sort (rather than
+ * doing an indexOf lookup on line text), since sorting changes which task occupies which
+ * line and two lines can be textually identical (SPEC.md "Editor mechanics").
  */
 export function sortBlockAtCursor(editor: Editor): void {
 	const cursor = editor.getCursor();

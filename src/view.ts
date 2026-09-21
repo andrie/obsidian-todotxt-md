@@ -125,6 +125,7 @@ export class AggregatedTaskView extends ItemView {
 		const { task } = record;
 		const parts: string[] = [];
 		if (task.priority) parts.push(`(${task.priority})`);
+		if (task.creationDate) parts.push(task.creationDate);
 		parts.push(task.description || "(no description)");
 		if (task.due) parts.push(`due:${task.due}`);
 		parts.push(`- ${record.filePath}`);

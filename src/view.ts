@@ -1,6 +1,7 @@
 import { ItemView, WorkspaceLeaf, TFile, debounce, type Editor } from "obsidian";
 import type TodotxtMdPlugin from "./main";
-import { parseTaskLine } from "./parse";
+import { parseTaskLine, serializeTask } from "./parse";
+import { toggleDone } from "./editor";
 import { aggregateTasks, DEFAULT_FILTER, type AggregateFilter, type TaskRecord } from "./aggregate";
 import type { Clock } from "./dates";
 
@@ -13,6 +14,13 @@ export class AggregatedTaskView extends ItemView {
 	private filter: AggregateFilter = { ...DEFAULT_FILTER };
 	private records: TaskRecord[] = [];
 	private clock: Clock;
+	/**
+	 * The record most recently toggled via the checkbox, kept visible through the very next
+	 * render pass even if the current filter would otherwise exclude it (e.g. checking off a
+	 * not-done task while "Include done" is off). Cleared after that render so a subsequent
+	 * rescan or filter change applies the filter normally. See task-2 review fix.
+	 */
+	private justToggled: TaskRecord | null = null;
 
 	private readonly handleVaultChange = debounce(
 		() => {
@@ -85,6 +93,11 @@ export class AggregatedTaskView extends ItemView {
 		const listEl = container.createDiv({ cls: "todotxt-md-task-list" });
 		const visible = aggregateTasks(this.records, this.filter, this.clock);
 
+		if (this.justToggled && !visible.includes(this.justToggled)) {
+			visible.push(this.justToggled);
+		}
+		this.justToggled = null;
+
 		if (visible.length === 0) {
 			listEl.createDiv({ text: "No matching tasks.", cls: "todotxt-md-empty" });
 			return;
@@ -92,8 +105,17 @@ export class AggregatedTaskView extends ItemView {
 
 		for (const record of visible) {
 			const item = listEl.createDiv({ cls: "todotxt-md-task-item" });
-			item.setText(this.formatTaskLabel(record));
-			item.addEventListener("click", () => {
+			if (record.task.done) item.addClass("is-done");
+
+			const checkbox = item.createEl("input", { type: "checkbox" });
+			checkbox.checked = record.task.done;
+			checkbox.addEventListener("click", (evt) => {
+				evt.stopPropagation();
+				void this.toggleRecordDone(record);
+			});
+
+			const label = item.createSpan({ text: this.formatTaskLabel(record) });
+			label.addEventListener("click", () => {
 				void this.jumpToTask(record);
 			});
 		}
@@ -153,5 +175,24 @@ export class AggregatedTaskView extends ItemView {
 		if (view.editor) {
 			view.editor.setCursor({ line: record.line, ch: 0 });
 		}
+	}
+
+	private async toggleRecordDone(record: TaskRecord): Promise<void> {
+		const file = this.app.vault.getAbstractFileByPath(record.filePath);
+		if (!(file instanceof TFile)) return;
+
+		const content = await this.app.vault.read(file);
+		const lines = content.split("\n");
+		const lineText = lines[record.line];
+		const task = parseTaskLine(lineText);
+		if (!task) return;
+
+		const updated = toggleDone(task, this.clock);
+		lines[record.line] = serializeTask(updated);
+		await this.app.vault.modify(file, lines.join("\n"));
+
+		record.task = updated;
+		this.justToggled = record;
+		this.render();
 	}
 }

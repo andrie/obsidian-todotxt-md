@@ -2,7 +2,7 @@ import type { Editor, EditorPosition } from "obsidian";
 import { parseTaskLine, serializeTask, type Task } from "./parse";
 import { bumpPriority } from "./priority";
 import { expandDateToken, type Clock } from "./dates";
-import { sortLines } from "./sort";
+import { defaultComparator } from "./sort";
 
 /**
  * Obsidian Editor glue. All rewrites go through Editor's replaceRange (CM6 transaction API)
@@ -30,14 +30,18 @@ function replaceLine(editor: Editor, lineNumber: number, newText: string): void 
  * column is preserved as-is (per SPEC.md: only operations that shift text before the
  * cursor need to recompute its offset).
  */
-export function bumpPriorityAtCursor(editor: Editor, direction: 1 | -1): void {
+export function bumpPriorityAtCursor(
+	editor: Editor,
+	direction: 1 | -1,
+	defaultPriority: string,
+): void {
 	const found = currentLineTask(editor);
 	if (!found) return;
 
 	const { task, lineNumber } = found;
 	const cursor = editor.getCursor();
 	const before = serializeTask(task);
-	const updated = bumpPriority(task, direction);
+	const updated = bumpPriority(task, direction, defaultPriority);
 	const after = serializeTask(updated);
 
 	replaceLine(editor, lineNumber, after);
@@ -71,15 +75,16 @@ export function expandDateTokenAtCursor(editor: Editor, clock: Clock): void {
 
 /**
  * Sorts the contiguous checkbox block containing the cursor, rewritten in place. Cursor is
- * re-anchored to the same task (tracked by its original line text) rather than the same line
- * index, since sorting changes which task occupies which line (SPEC.md "Editor mechanics").
+ * re-anchored by tracking the cursor's original array index through the sort (rather than
+ * doing an indexOf lookup on line text), since sorting changes which task occupies which
+ * line and two lines can be textually identical (SPEC.md "Editor mechanics").
  */
 export function sortBlockAtCursor(editor: Editor): void {
 	const cursor = editor.getCursor();
 	const lastLine = editor.lastLine();
-	const originalLineText = editor.getLine(cursor.line);
+	const originalCursorLine = cursor.line;
 
-	if (!parseTaskLine(originalLineText)) return;
+	if (!parseTaskLine(editor.getLine(cursor.line))) return;
 
 	let start = cursor.line;
 	while (start > 0 && parseTaskLine(editor.getLine(start - 1))) {
@@ -95,8 +100,12 @@ export function sortBlockAtCursor(editor: Editor): void {
 		blockLines.push(editor.getLine(i));
 	}
 
-	const sorted = sortLines(blockLines);
-	const newRelativeIndex = sorted.indexOf(originalLineText);
+	const indices = blockLines.map((_, i) => i);
+	const sortedIndices = [...indices].sort(
+		(i, j) => defaultComparator(blockLines[i], blockLines[j]),
+	);
+	const sorted = sortedIndices.map((i) => blockLines[i]);
+	const newRelativeIndex = sortedIndices.indexOf(originalCursorLine - start);
 
 	editor.replaceRange(
 		sorted.join("\n"),
@@ -110,9 +119,21 @@ export function sortBlockAtCursor(editor: Editor): void {
 }
 
 /**
- * Toggles done state on the cursor's line, prepending/stripping the completion date per the
- * todo.txt convention. due:/t: are left untouched on completion (SPEC.md "Completion field
- * handling") — a completed task keeps its due date as a historical record.
+ * Toggles done state on a Task, prepending/stripping the completion date per the todo.txt
+ * convention. due:/t: are left untouched on completion (SPEC.md "Completion field handling")
+ * — a completed task keeps its due date as a historical record. Pure: no Obsidian types, so
+ * it's reusable by both the cursor-based command below and the aggregated view's checkbox
+ * (view.ts), which has no open Editor to operate on.
+ */
+export function toggleDone(task: Task, clock: Clock): Task {
+	return task.done
+		? { ...task, done: false, completionDate: null }
+		: { ...task, done: true, completionDate: expandDateToken("tod", clock) };
+}
+
+/**
+ * Toggles done state on the cursor's line, via toggleDone. No-ops if the cursor isn't on a
+ * task line.
  */
 export function toggleDoneAtCursor(editor: Editor, clock: Clock): void {
 	const found = currentLineTask(editor);
@@ -122,9 +143,7 @@ export function toggleDoneAtCursor(editor: Editor, clock: Clock): void {
 	const cursor = editor.getCursor();
 	const before = serializeTask(task);
 
-	const updated: Task = task.done
-		? { ...task, done: false, completionDate: null }
-		: { ...task, done: true, completionDate: expandDateToken("tod", clock) };
+	const updated = toggleDone(task, clock);
 
 	const after = serializeTask(updated);
 	replaceLine(editor, lineNumber, after);

@@ -28,6 +28,15 @@
 	background-color: var(--background-modifier-hover);
 }
 
+.todotxt-md-task-item input[type="checkbox"] {
+	margin-right: 0.5em;
+}
+
+.todotxt-md-task-item.is-done {
+	color: var(--text-muted);
+	text-decoration: line-through;
+}
+
 .todotxt-md-empty {
 	color: var(--text-muted);
 }

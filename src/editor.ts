@@ -2,7 +2,7 @@ import type { Editor, EditorPosition } from "obsidian";
 import { parseTaskLine, serializeTask, type Task } from "./parse";
 import { bumpPriority } from "./priority";
 import { expandDateToken, type Clock } from "./dates";
-import { sortLines } from "./sort";
+import { sortLines, defaultComparator } from "./sort";
 
 /**
  * Obsidian Editor glue. All rewrites go through Editor's replaceRange (CM6 transaction API)
@@ -81,9 +81,9 @@ export function expandDateTokenAtCursor(editor: Editor, clock: Clock): void {
 export function sortBlockAtCursor(editor: Editor): void {
 	const cursor = editor.getCursor();
 	const lastLine = editor.lastLine();
-	const originalLineText = editor.getLine(cursor.line);
+	const originalCursorLine = cursor.line;
 
-	if (!parseTaskLine(originalLineText)) return;
+	if (!parseTaskLine(editor.getLine(cursor.line))) return;
 
 	let start = cursor.line;
 	while (start > 0 && parseTaskLine(editor.getLine(start - 1))) {
@@ -99,8 +99,12 @@ export function sortBlockAtCursor(editor: Editor): void {
 		blockLines.push(editor.getLine(i));
 	}
 
-	const sorted = sortLines(blockLines);
-	const newRelativeIndex = sorted.indexOf(originalLineText);
+	const indices = blockLines.map((_, i) => i);
+	const sortedIndices = [...indices].sort(
+		(i, j) => defaultComparator(blockLines[i], blockLines[j]),
+	);
+	const sorted = sortedIndices.map((i) => blockLines[i]);
+	const newRelativeIndex = sortedIndices.indexOf(originalCursorLine - start);
 
 	editor.replaceRange(
 		sorted.join("\n"),

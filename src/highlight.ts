@@ -34,73 +34,128 @@ const KIND_TO_CLASS: Partial<Record<TokenSpan["kind"], string>> = {
 };
 
 /**
+ * One decoration to be inserted into the RangeSetBuilder, pending position-sort. `from`/`to`
+ * are document-absolute offsets (already folded in with the owning line's `line.from`).
+ * `isLine` marks a Decoration.line (vs. Decoration.mark) so ties at the same `from` can put the
+ * line decoration first — RangeSetBuilder.add requires non-decreasing `from`/`startSide` order,
+ * and line decorations conventionally sort before marks at an identical position.
+ */
+export interface PendingDecoration {
+	from: number;
+	to: number;
+	decoration: Decoration;
+	isLine: boolean;
+}
+
+/**
+ * Computes every decoration for a single line, position-unsorted (callers must sort by `from`
+ * before handing these to RangeSetBuilder.add — see buildDecorations). Pure function of the
+ * line's text and its document-absolute start offset: no EditorView/CM6 state involved, so this
+ * is unit-testable directly (see tests/highlight.test.ts) despite the rest of this file being
+ * manually-verified adapter code. Extracted specifically so the ordering invariant (every
+ * caller must sort before building) can be regression-tested without a live view.
+ */
+export function computeLineDecorations(lineText: string, lineFrom: number): PendingDecoration[] {
+	const pending: PendingDecoration[] = [];
+
+	const parsed = parseTaskLineWithSpans(lineText);
+	if (parsed) {
+		if (parsed.task.done) {
+			pending.push({
+				from: lineFrom,
+				to: lineFrom,
+				decoration: Decoration.line({ class: "todotxt-md-hl-done-line" }),
+				isLine: true,
+			});
+		}
+		for (const span of parsed.spans) {
+			if (span.kind === "priority") continue; // never colored when valid
+
+			const absFrom = lineFrom + span.start;
+			const absTo = lineFrom + span.end;
+
+			if (span.kind === "project" || span.kind === "context") {
+				const name = lineText.slice(span.start, span.end).slice(1); // strip +/#
+				pending.push({
+					from: absFrom,
+					to: absTo,
+					decoration: Decoration.mark({
+						attributes: { style: `color: ${nameToColor(name)}` },
+					}),
+					isLine: false,
+				});
+			} else {
+				const className = KIND_TO_CLASS[span.kind];
+				if (className) {
+					pending.push({
+						from: absFrom,
+						to: absTo,
+						decoration: Decoration.mark({ class: className }),
+						isLine: false,
+					});
+				}
+			}
+		}
+
+		const prioritySpan = parsed.spans.find((s) => s.kind === "priority");
+		if (prioritySpan) {
+			const text = lineText.slice(prioritySpan.start, prioritySpan.end);
+			if (/[a-z]/.test(text)) {
+				pending.push({
+					from: lineFrom + prioritySpan.start,
+					to: lineFrom + prioritySpan.end,
+					decoration: Decoration.mark({ class: "todotxt-md-hl-priority-lowercase" }),
+					isLine: false,
+				});
+			}
+		}
+	}
+
+	const malformed = detectMalformedPriority(lineText);
+	if (malformed) {
+		pending.push({
+			from: lineFrom + malformed.start,
+			to: lineFrom + malformed.end,
+			decoration: Decoration.mark({ class: "todotxt-md-hl-priority-malformed" }),
+			isLine: false,
+		});
+	}
+
+	return pending;
+}
+
+/**
  * Builds the CM6 decoration set for currently-visible lines only (DESIGN_RULES.md section 3.4
  * "operate on the minimal scope") — never the whole document, so cost stays proportional to
  * what's on screen rather than document size.
+ *
+ * Per-line token detection (computeLineDecorations) runs in several logically-independent
+ * passes — the main span loop, then a separate lowercase-priority check, then a separate
+ * malformed-priority check — so decorations are NOT discovered in left-to-right position order
+ * within a line (e.g. a lowercase "(a)" at the start of a line is detected after a +project
+ * later in the line). RangeSetBuilder.add requires calls in non-decreasing `from` order and
+ * throws otherwise, so every decoration across all visible lines is collected first and sorted
+ * by position before any builder.add call happens.
  */
 function buildDecorations(view: EditorView, isEnabled: () => boolean): DecorationSet {
 	const builder = new RangeSetBuilder<Decoration>();
 	if (!isEnabled()) return builder.finish();
 
+	const pending: PendingDecoration[] = [];
+
 	for (const { from, to } of view.visibleRanges) {
 		let pos = from;
 		while (pos <= to) {
 			const line = view.state.doc.lineAt(pos);
-			const lineText = line.text;
-
-			const parsed = parseTaskLineWithSpans(lineText);
-			if (parsed) {
-				if (parsed.task.done) {
-					builder.add(line.from, line.from, Decoration.line({ class: "todotxt-md-hl-done-line" }));
-				}
-				for (const span of parsed.spans) {
-					if (span.kind === "priority") continue; // never colored when valid
-
-					const absFrom = line.from + span.start;
-					const absTo = line.from + span.end;
-					const className =
-						span.kind === "project" || span.kind === "context"
-							? null // handled below via inline color, not a shared class
-							: KIND_TO_CLASS[span.kind];
-
-					if (span.kind === "project" || span.kind === "context") {
-						const name = lineText.slice(span.start, span.end).slice(1); // strip +/#
-						builder.add(
-							absFrom,
-							absTo,
-							Decoration.mark({
-								attributes: { style: `color: ${nameToColor(name)}` },
-							}),
-						);
-					} else if (className) {
-						builder.add(absFrom, absTo, Decoration.mark({ class: className }));
-					}
-				}
-
-				const prioritySpan = parsed.spans.find((s) => s.kind === "priority");
-				if (prioritySpan) {
-					const text = lineText.slice(prioritySpan.start, prioritySpan.end);
-					if (/[a-z]/.test(text)) {
-						builder.add(
-							line.from + prioritySpan.start,
-							line.from + prioritySpan.end,
-							Decoration.mark({ class: "todotxt-md-hl-priority-lowercase" }),
-						);
-					}
-				}
-			}
-
-			const malformed = detectMalformedPriority(lineText);
-			if (malformed) {
-				builder.add(
-					line.from + malformed.start,
-					line.from + malformed.end,
-					Decoration.mark({ class: "todotxt-md-hl-priority-malformed" }),
-				);
-			}
-
+			pending.push(...computeLineDecorations(line.text, line.from));
 			pos = line.to + 1;
 		}
+	}
+
+	pending.sort((a, b) => a.from - b.from || (a.isLine === b.isLine ? 0 : a.isLine ? -1 : 1));
+
+	for (const { from, to, decoration } of pending) {
+		builder.add(from, to, decoration);
 	}
 
 	return builder.finish();

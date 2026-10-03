@@ -7,6 +7,7 @@ import {
 } from "./editor";
 import { DateShortcutSuggest } from "./dateSuggest";
 import { AggregatedTaskView, TASK_VIEW_TYPE } from "./view";
+import { buildHighlightExtension } from "./highlight";
 import type { DueWindow } from "./aggregate";
 import type { Clock } from "./dates";
 
@@ -16,6 +17,7 @@ interface TodotxtMdSettings {
 	scanFolders: string[];
 	defaultDueWindow: DueWindow;
 	enableAggregatedViewPills: boolean;
+	enableInEditorHighlight: boolean;
 }
 
 const DEFAULT_SETTINGS: TodotxtMdSettings = {
@@ -24,6 +26,7 @@ const DEFAULT_SETTINGS: TodotxtMdSettings = {
 	scanFolders: [],
 	defaultDueWindow: "all",
 	enableAggregatedViewPills: true,
+	enableInEditorHighlight: true,
 };
 
 function isValidPriority(value: unknown): value is string {
@@ -52,6 +55,10 @@ export default class TodotxtMdPlugin extends Plugin {
 		this.dateSuggest = new DateShortcutSuggest(this.app, systemClock);
 		this.dateSuggest.setEnabled(this.settings.enableDateSuggest);
 		this.registerEditorSuggest(this.dateSuggest);
+
+		this.registerEditorExtension(
+			buildHighlightExtension(() => this.settings.enableInEditorHighlight),
+		);
 
 		this.registerView(TASK_VIEW_TYPE, (leaf) => new AggregatedTaskView(leaf, this));
 
@@ -119,6 +126,10 @@ export default class TodotxtMdPlugin extends Plugin {
 				loaded && typeof loaded.enableAggregatedViewPills === "boolean"
 					? loaded.enableAggregatedViewPills
 					: DEFAULT_SETTINGS.enableAggregatedViewPills,
+			enableInEditorHighlight:
+				loaded && typeof loaded.enableInEditorHighlight === "boolean"
+					? loaded.enableInEditorHighlight
+					: DEFAULT_SETTINGS.enableInEditorHighlight,
 		};
 	}
 
@@ -217,6 +228,17 @@ class TodotxtMdSettingTab extends PluginSettingTab {
 				toggle.setValue(this.plugin.settings.enableAggregatedViewPills).onChange(async (value) => {
 					this.plugin.settings.enableAggregatedViewPills = value;
 					await this.plugin.saveSettings();
+				}),
+			);
+
+		new Setting(containerEl)
+			.setName("In-editor highlighting")
+			.setDesc("Color +project, #context, and date tokens inline while editing a task line.")
+			.addToggle((toggle) =>
+				toggle.setValue(this.plugin.settings.enableInEditorHighlight).onChange(async (value) => {
+					this.plugin.settings.enableInEditorHighlight = value;
+					await this.plugin.saveSettings();
+					this.app.workspace.updateOptions();
 				}),
 			);
 	}

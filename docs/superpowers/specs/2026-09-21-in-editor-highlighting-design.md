@@ -2,6 +2,14 @@
 
 > Written during a brainstorming session (architectural path). Self-contained: read this file
 > plus `SPEC.md`/`DESIGN_RULES.md` to implement, no other conversation context required.
+>
+> **Amended 2026-10-03:** the Styling section below originally gave `+project`/`#context` one
+> fixed color per token *kind* via Style Settings variables. A follow-up brainstorming session
+> (see `docs/superpowers/specs/2026-10-03-aggregated-view-pills-and-filters-design.md`) decided
+> project/context tokens should instead get a **per-name hash color**, shared with the
+> aggregated view's pills, so `+Finance` looks the same wherever it appears. The Styling section
+> is updated in place to reflect this; everything else in this file (scope, `parseTaskLineWithSpans`,
+> `detectMalformedPriority`, registration, testing) is unchanged.
 
 ## Why
 
@@ -170,18 +178,31 @@ triggers a CM6 re-render (same mechanism `dateSuggest.ts`'s `setEnabled` uses, i
 via a CM6 effect/reconfiguration if the extension needs to fully disable rather than just
 no-op).
 
-### Styling: extend the existing Style Settings mechanism, don't invent a new one
+### Styling: per-name hash for project/context; Style Settings mechanism for everything else
 
-`styles.css` already has a working `/* @settings */` block (added 2026-09-21, confirmed
-functioning) for two aggregated-view colors. This feature adds new entries to the *same* block
-for each highlight kind (`todotxt-md-hl-project-color`, `todotxt-md-hl-context-color`,
-`todotxt-md-hl-date-color` — one shared color for creation/due/threshold dates, not three
-separate ones, to avoid an overwhelming settings list — `todotxt-md-hl-done-line-color`,
-`todotxt-md-hl-priority-malformed-color`, `todotxt-md-hl-priority-lowercase-color`), each
-consumed via `var(--<id>, <fallback>)` exactly like the existing two. The plugin-level
-`enableInEditorHighlight` toggle controls whether decorations exist in the DOM at all; Style
-Settings (optional, best-effort per `DESIGN_RULES.md` §3.5) only ever recolors classes that are
-already present — consistent with how the two existing settings already behave.
+**Project and context tokens use the shared `nameToColor(name)` hash function** from
+`src/tokenColors.ts` (see the aggregated-view spec for its definition), not a Style
+Settings-overridable single color per kind. `+Finance` resolves to the same fixed-palette color
+in-editor as it does as a pill in the aggregated view — that cross-surface recognizability is
+the reason for the hash approach. Each project/context `Decoration.mark` gets an inline style
+(or a `todotxt-md-hl-color-N` class, one per palette slot) carrying that computed color directly,
+rather than a CSS variable a user could recolor. This is a deliberate reduction in configurability
+versus the original design: Style Settings can no longer recolor "all projects" or "all contexts"
+as a group, since the whole point is that different *names* render as different colors.
+
+**Everything else keeps the original Style Settings mechanism.** `styles.css`'s existing
+`/* @settings */` block (added 2026-09-21, confirmed functioning) gains entries for
+`todotxt-md-hl-date-color` (one shared color for creation/due/threshold dates, not three
+separate ones, to avoid an overwhelming settings list), `todotxt-md-hl-done-line-color`,
+`todotxt-md-hl-priority-malformed-color`, and `todotxt-md-hl-priority-lowercase-color` — each
+consumed via `var(--<id>, <fallback>)` exactly like the existing two aggregated-view colors.
+
+The plugin-level `enableInEditorHighlight` toggle controls whether decorations exist in the DOM
+at all; Style Settings (optional, best-effort per `DESIGN_RULES.md` §3.5) only ever recolors
+classes that are already present — consistent with how the two existing settings already behave.
+The fixed hash palette itself (`src/tokenColors.ts`) is plain TypeScript, not Style
+Settings-driven, matching the aggregated-view spec's decision not to add a color-mapping
+settings UI.
 
 ## Testing
 
@@ -198,7 +219,9 @@ already present — consistent with how the two existing settings already behave
 
 ## Open items for the implementation plan (not design decisions — just call out during planning)
 
-- Exact CSS default colors for each new `@settings` entry (a placeholder palette, swappable).
+- Exact CSS default colors for each remaining Style Settings `@settings` entry (date/done-line/
+  malformed-priority/lowercase-priority — a placeholder palette, swappable). The fixed hash
+  palette for project/context is specified in the aggregated-view spec instead.
 - Whether toggling `enableInEditorHighlight` requires restarting the extension via a CM6
   `Compartment`/effect, or whether a "always registered, no-ops when disabled" approach is
   simpler — an implementation detail, not a design decision, but worth resolving explicitly in

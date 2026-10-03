@@ -286,6 +286,13 @@ Commands (all hotkey-bindable, all operating on the cursor's current line/block)
    sortable/filterable flat list (filter by `#context`, `+project`, due window). Clicking a task
    jumps to its source line. This is the primary vehicle for querying tasks by due date, since
    Dataview cannot field-query our bare `due:` syntax (see "Interop note" above).
+   - **Display-layer enhancements** (both gated by optional settings, defaulting on, no grammar
+     changes): the aggregated view renders `+project` and `#context` tokens as colored,
+     clickable pills with a removable filter-chip bar for quick filtering; task lines inside the
+     editor receive live syntax highlighting for projects/contexts (per-name hash colors), dates,
+     completion status, and malformed priority detection. See
+     `docs/superpowers/specs/2026-10-03-aggregated-view-pills-and-filters-design.md` and
+     `docs/superpowers/specs/2026-09-21-in-editor-highlighting-design.md` for full design.
 
 **Settings tab:** default new-task priority; whether increase-from-none jumps to `(A)`; date
 format (ISO fixed for v1); sort comparator order; weekday token list.

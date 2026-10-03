@@ -145,7 +145,7 @@ export class AggregatedTaskView extends ItemView {
 					text: `+${project}`,
 					cls: "todotxt-md-pill todotxt-md-pill-project",
 				});
-				pill.style.color = nameToColor(project);
+				pill.style.backgroundColor = nameToColor(project);
 				pill.addEventListener("click", (evt) => {
 					evt.stopPropagation();
 					this.toggleProjectFilter(project);
@@ -157,7 +157,7 @@ export class AggregatedTaskView extends ItemView {
 					text: `#${context}`,
 					cls: "todotxt-md-pill todotxt-md-pill-context",
 				});
-				pill.style.color = nameToColor(context);
+				pill.style.backgroundColor = nameToColor(context);
 				pill.addEventListener("click", (evt) => {
 					evt.stopPropagation();
 					this.toggleContextFilter(context);

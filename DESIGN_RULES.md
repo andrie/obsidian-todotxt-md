@@ -19,6 +19,11 @@
 2. **No emojis, ever, in stored task text.** Emoji priority/date syntax (🔺⏫📅…) is the
    clutter this project exists to escape. Never write emojis into notes. UI chrome (the
    settings tab, an eventual view) stays visually minimal and text-first too.
+   > **changed 2026-10-03:** display-only styling (color, underline) applied to existing
+   > characters via CM6 decorations or DOM styling does not violate this rule — it never changes
+   > stored text, introduces emoji, or adds new chrome. A task with in-editor highlighting or
+   > aggregated-view pills is byte-identical when plugin is disabled and fully legible as plain
+   > text.
 3. **Keyboard-first.** Every user action must be reachable as a hotkey-bindable command. A
    feature that only works via mouse/context-menu is incomplete.
 4. **Assist, don't nag.** The plugin helps format tasks (priority bumps, date expansion,

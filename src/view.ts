@@ -138,29 +138,38 @@ export class AggregatedTaskView extends ItemView {
 			cls: "todotxt-md-description",
 		});
 
-		for (const project of task.projects) {
-			container.appendText(" ");
-			const pill = container.createSpan({
-				text: `+${project}`,
-				cls: "todotxt-md-pill todotxt-md-pill-project",
-			});
-			pill.style.color = nameToColor(project);
-			pill.addEventListener("click", (evt) => {
-				evt.stopPropagation();
-				this.toggleProjectFilter(project);
-			});
-		}
-		for (const context of task.contexts) {
-			container.appendText(" ");
-			const pill = container.createSpan({
-				text: `#${context}`,
-				cls: "todotxt-md-pill todotxt-md-pill-context",
-			});
-			pill.style.color = nameToColor(context);
-			pill.addEventListener("click", (evt) => {
-				evt.stopPropagation();
-				this.toggleContextFilter(context);
-			});
+		if (this.plugin.settings.enableAggregatedViewPills) {
+			for (const project of task.projects) {
+				container.appendText(" ");
+				const pill = container.createSpan({
+					text: `+${project}`,
+					cls: "todotxt-md-pill todotxt-md-pill-project",
+				});
+				pill.style.color = nameToColor(project);
+				pill.addEventListener("click", (evt) => {
+					evt.stopPropagation();
+					this.toggleProjectFilter(project);
+				});
+			}
+			for (const context of task.contexts) {
+				container.appendText(" ");
+				const pill = container.createSpan({
+					text: `#${context}`,
+					cls: "todotxt-md-pill todotxt-md-pill-context",
+				});
+				pill.style.color = nameToColor(context);
+				pill.addEventListener("click", (evt) => {
+					evt.stopPropagation();
+					this.toggleContextFilter(context);
+				});
+			}
+		} else {
+			for (const project of task.projects) {
+				container.appendText(` +${project}`);
+			}
+			for (const context of task.contexts) {
+				container.appendText(` #${context}`);
+			}
 		}
 
 		if (task.due) {
@@ -201,7 +210,9 @@ export class AggregatedTaskView extends ItemView {
 			this.render();
 		});
 
-		this.renderActiveFilterChips(controls);
+		if (this.plugin.settings.enableAggregatedViewPills) {
+			this.renderActiveFilterChips(controls);
+		}
 	}
 
 	private renderActiveFilterChips(container: HTMLElement): void {

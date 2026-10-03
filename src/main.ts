@@ -15,6 +15,7 @@ interface TodotxtMdSettings {
 	enableDateSuggest: boolean;
 	scanFolders: string[];
 	defaultDueWindow: DueWindow;
+	enableAggregatedViewPills: boolean;
 }
 
 const DEFAULT_SETTINGS: TodotxtMdSettings = {
@@ -22,6 +23,7 @@ const DEFAULT_SETTINGS: TodotxtMdSettings = {
 	enableDateSuggest: true,
 	scanFolders: [],
 	defaultDueWindow: "all",
+	enableAggregatedViewPills: true,
 };
 
 function isValidPriority(value: unknown): value is string {
@@ -113,6 +115,10 @@ export default class TodotxtMdPlugin extends Plugin {
 				loaded && isValidDueWindow(loaded.defaultDueWindow)
 					? loaded.defaultDueWindow
 					: DEFAULT_SETTINGS.defaultDueWindow,
+			enableAggregatedViewPills:
+				loaded && typeof loaded.enableAggregatedViewPills === "boolean"
+					? loaded.enableAggregatedViewPills
+					: DEFAULT_SETTINGS.enableAggregatedViewPills,
 		};
 	}
 
@@ -202,6 +208,16 @@ class TodotxtMdSettingTab extends PluginSettingTab {
 						this.plugin.settings.defaultDueWindow = value as TodotxtMdSettings["defaultDueWindow"];
 						await this.plugin.saveSettings();
 					}),
+			);
+
+		new Setting(containerEl)
+			.setName("Aggregated view pills")
+			.setDesc("Show colored +project/#context pills in the aggregated task view, with click-to-filter.")
+			.addToggle((toggle) =>
+				toggle.setValue(this.plugin.settings.enableAggregatedViewPills).onChange(async (value) => {
+					this.plugin.settings.enableAggregatedViewPills = value;
+					await this.plugin.saveSettings();
+				}),
 			);
 	}
 }

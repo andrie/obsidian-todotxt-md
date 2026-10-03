@@ -4,6 +4,7 @@ import { parseTaskLine, serializeTask } from "./parse";
 import { toggleDone } from "./editor";
 import { aggregateTasks, DEFAULT_FILTER, type AggregateFilter, type TaskRecord } from "./aggregate";
 import type { Clock } from "./dates";
+import { nameToColor } from "./tokenColors";
 
 export const TASK_VIEW_TYPE = "todotxt-md-aggregated-view";
 
@@ -114,22 +115,50 @@ export class AggregatedTaskView extends ItemView {
 				void this.toggleRecordDone(record);
 			});
 
-			const label = item.createSpan({ text: this.formatTaskLabel(record) });
-			label.addEventListener("click", () => {
+			item.addEventListener("click", () => {
 				void this.jumpToTask(record);
 			});
+			this.renderTaskRow(item, record);
 		}
 	}
 
-	private formatTaskLabel(record: TaskRecord): string {
+	private renderTaskRow(container: HTMLElement, record: TaskRecord): void {
 		const { task } = record;
-		const parts: string[] = [];
-		if (task.priority) parts.push(`(${task.priority})`);
-		if (task.creationDate) parts.push(task.creationDate);
-		parts.push(task.description || "(no description)");
-		if (task.due) parts.push(`due:${task.due}`);
-		parts.push(`- ${record.filePath}`);
-		return parts.join(" ");
+
+		if (task.priority) {
+			container.createSpan({ text: `(${task.priority})`, cls: "todotxt-md-pill-priority" });
+			container.appendText(" ");
+		}
+		if (task.creationDate) {
+			container.createSpan({ text: task.creationDate, cls: "todotxt-md-date-segment" });
+			container.appendText(" ");
+		}
+		container.createSpan({
+			text: task.description || "(no description)",
+			cls: "todotxt-md-description",
+		});
+
+		for (const project of task.projects) {
+			container.appendText(" ");
+			const pill = container.createSpan({
+				text: `+${project}`,
+				cls: "todotxt-md-pill todotxt-md-pill-project",
+			});
+			pill.style.color = nameToColor(project);
+		}
+		for (const context of task.contexts) {
+			container.appendText(" ");
+			const pill = container.createSpan({
+				text: `#${context}`,
+				cls: "todotxt-md-pill todotxt-md-pill-context",
+			});
+			pill.style.color = nameToColor(context);
+		}
+
+		if (task.due) {
+			container.appendText(` due:${task.due}`);
+		}
+		container.appendText(` - ${record.filePath}`);
 	}
 
 	private renderFilterControls(container: HTMLElement): void {

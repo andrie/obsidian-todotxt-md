@@ -59,3 +59,22 @@ settings:
 .todotxt-md-empty {
 	color: var(--text-muted);
 }
+
+.todotxt-md-pill {
+	font-weight: 600;
+	padding: 0 0.3em;
+	border-radius: 0.3em;
+}
+
+.todotxt-md-pill-priority {
+	font-weight: 700;
+}
+
+.todotxt-md-description {
+	/* No special styling — plain description text, distinct class only so pills can be
+	   targeted independently in CSS without affecting description text. */
+}
+
+.todotxt-md-date-segment {
+	color: var(--text-muted);
+}

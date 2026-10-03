@@ -64,6 +64,7 @@ settings:
 	font-weight: 600;
 	padding: 0 0.3em;
 	border-radius: 0.3em;
+	cursor: pointer;
 }
 
 .todotxt-md-pill-priority {
@@ -76,5 +77,22 @@ settings:
 }
 
 .todotxt-md-date-segment {
+	color: var(--text-muted);
+}
+
+.todotxt-md-active-filters {
+	display: flex;
+	gap: 0.3em;
+	flex-wrap: wrap;
+}
+
+.todotxt-md-filter-chip {
+	background-color: var(--background-modifier-hover);
+	border-radius: 0.3em;
+	padding: 0.1em 0.4em;
+}
+
+.todotxt-md-filter-chip-remove {
+	cursor: pointer;
 	color: var(--text-muted);
 }

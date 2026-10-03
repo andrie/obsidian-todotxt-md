@@ -145,6 +145,10 @@ export class AggregatedTaskView extends ItemView {
 				cls: "todotxt-md-pill todotxt-md-pill-project",
 			});
 			pill.style.color = nameToColor(project);
+			pill.addEventListener("click", (evt) => {
+				evt.stopPropagation();
+				this.toggleProjectFilter(project);
+			});
 		}
 		for (const context of task.contexts) {
 			container.appendText(" ");
@@ -153,6 +157,10 @@ export class AggregatedTaskView extends ItemView {
 				cls: "todotxt-md-pill todotxt-md-pill-context",
 			});
 			pill.style.color = nameToColor(context);
+			pill.addEventListener("click", (evt) => {
+				evt.stopPropagation();
+				this.toggleContextFilter(context);
+			});
 		}
 
 		if (task.due) {
@@ -192,6 +200,45 @@ export class AggregatedTaskView extends ItemView {
 			this.filter = { ...this.filter, includeDone: includeDoneCheckbox.checked };
 			this.render();
 		});
+
+		this.renderActiveFilterChips(controls);
+	}
+
+	private renderActiveFilterChips(container: HTMLElement): void {
+		const chipBar = container.createDiv({ cls: "todotxt-md-active-filters" });
+
+		for (const project of this.filter.projects) {
+			const chip = chipBar.createSpan({ cls: "todotxt-md-filter-chip" });
+			chip.createSpan({ text: `+${project}` });
+			const remove = chip.createSpan({ text: " ×", cls: "todotxt-md-filter-chip-remove" });
+			remove.addEventListener("click", () => this.toggleProjectFilter(project));
+		}
+		for (const context of this.filter.contexts) {
+			const chip = chipBar.createSpan({ cls: "todotxt-md-filter-chip" });
+			chip.createSpan({ text: `#${context}` });
+			const remove = chip.createSpan({ text: " ×", cls: "todotxt-md-filter-chip-remove" });
+			remove.addEventListener("click", () => this.toggleContextFilter(context));
+		}
+	}
+
+	private toggleProjectFilter(project: string): void {
+		const index = this.filter.projects.indexOf(project);
+		const projects =
+			index === -1
+				? [...this.filter.projects, project]
+				: this.filter.projects.filter((p) => p !== project);
+		this.filter = { ...this.filter, projects };
+		this.render();
+	}
+
+	private toggleContextFilter(context: string): void {
+		const index = this.filter.contexts.indexOf(context);
+		const contexts =
+			index === -1
+				? [...this.filter.contexts, context]
+				: this.filter.contexts.filter((c) => c !== context);
+		this.filter = { ...this.filter, contexts };
+		this.render();
 	}
 
 	private async jumpToTask(record: TaskRecord): Promise<void> {

@@ -17,6 +17,34 @@ settings:
     type: variable-color
     format: hex
     default: '#4285F4'
+
+  - id: todotxt-md-hl-date-color
+    title: In-editor Date Color
+    description: Color for creation/due/threshold dates highlighted inside notes
+    type: variable-color
+    format: hex
+    default: '#4285F4'
+
+  - id: todotxt-md-hl-done-line-color
+    title: In-editor Done Task Color
+    description: Color for completed task lines highlighted inside notes
+    type: variable-color
+    format: hex
+    default: '#808080'
+
+  - id: todotxt-md-hl-priority-malformed-color
+    title: Malformed Priority Underline Color
+    description: Underline color for a priority-shaped-but-invalid token (e.g. "[A]", "(AA)")
+    type: variable-color
+    format: hex
+    default: '#E45756'
+
+  - id: todotxt-md-hl-priority-lowercase-color
+    title: Lowercase Priority Color
+    description: Color cue for a valid but lowercase priority (e.g. "(a)") that will be normalized to uppercase
+    type: variable-color
+    format: hex
+    default: '#999999'
 */
 
 .todotxt-md-date-suggestion-token {
@@ -95,4 +123,20 @@ settings:
 .todotxt-md-filter-chip-remove {
 	cursor: pointer;
 	color: var(--text-muted);
+}
+
+.todotxt-md-hl-date {
+	color: var(--todotxt-md-hl-date-color, var(--text-accent));
+}
+
+.todotxt-md-hl-done-line {
+	color: var(--todotxt-md-hl-done-line-color, var(--text-muted));
+}
+
+.todotxt-md-hl-priority-malformed {
+	text-decoration: underline wavy var(--todotxt-md-hl-priority-malformed-color, #e45756);
+}
+
+.todotxt-md-hl-priority-lowercase {
+	color: var(--todotxt-md-hl-priority-lowercase-color, var(--text-faint));
 }

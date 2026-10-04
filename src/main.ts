@@ -1,10 +1,11 @@
-import { Plugin, PluginSettingTab, Setting, App } from "obsidian";
+import { Plugin, PluginSettingTab, Setting, App, Menu, Editor } from "obsidian";
 import {
 	bumpPriorityAtCursor,
 	expandDateTokenAtCursor,
 	sortBlockAtCursor,
 	toggleDoneAtCursor,
 } from "./editor";
+import { parseTaskLine } from "./parse";
 import { DateShortcutSuggest } from "./dateSuggest";
 import { AggregatedTaskView, TASK_VIEW_TYPE } from "./view";
 import { buildHighlightExtension } from "./highlight";
@@ -99,6 +100,26 @@ export default class TodotxtMdPlugin extends Plugin {
 			name: "Toggle done",
 			editorCallback: (editor) => toggleDoneAtCursor(editor, systemClock),
 		});
+
+		this.registerEvent(
+			this.app.workspace.on("editor-menu", (menu: Menu, editor: Editor) => {
+				const lineText = editor.getLine(editor.getCursor().line);
+				if (!parseTaskLine(lineText)) return;
+
+				menu.addItem((item) =>
+					item
+						.setTitle("Sort checkbox block")
+						.setIcon("arrow-down-up")
+						.onClick(() => sortBlockAtCursor(editor)),
+				);
+				menu.addItem((item) =>
+					item
+						.setTitle("Toggle done")
+						.setIcon("check-circle")
+						.onClick(() => toggleDoneAtCursor(editor, systemClock)),
+				);
+			}),
+		);
 
 		this.addSettingTab(new TodotxtMdSettingTab(this.app, this));
 	}

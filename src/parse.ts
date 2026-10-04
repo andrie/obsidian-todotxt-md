@@ -4,6 +4,11 @@
  * regex — operate on the parsed Task, not raw strings.
  */
 
+export interface ContextToken {
+	name: string;
+	prefix: "@" | "#";
+}
+
 export interface Task {
 	/** Leading whitespace/list-marker indentation, preserved verbatim. */
 	indent: string;
@@ -17,7 +22,8 @@ export interface Task {
 	/** Free-text description with recognized tokens removed, extra tokens left inline. */
 	description: string;
 	projects: string[];
-	contexts: string[];
+	/** @context and #context are both accepted; each token's original prefix is preserved. */
+	contexts: ContextToken[];
 	due: string | null;
 	threshold: string | null;
 }
@@ -68,7 +74,7 @@ export function parseTaskLine(line: string): Task | null {
 	}
 
 	const projects: string[] = [];
-	const contexts: string[] = [];
+	const contexts: ContextToken[] = [];
 	let due: string | null = null;
 	let threshold: string | null = null;
 
@@ -80,8 +86,8 @@ export function parseTaskLine(line: string): Task | null {
 			projects.push(word.slice(1));
 			continue;
 		}
-		if (word.startsWith("#") && word.length > 1) {
-			contexts.push(word.slice(1));
+		if ((word.startsWith("@") || word.startsWith("#")) && word.length > 1) {
+			contexts.push({ name: word.slice(1), prefix: word[0] as "@" | "#" });
 			continue;
 		}
 		if (word.startsWith("due:")) {
@@ -183,7 +189,7 @@ export function parseTaskLineWithSpans(line: string): { task: Task; spans: Token
 	}
 
 	const projects: string[] = [];
-	const contexts: string[] = [];
+	const contexts: ContextToken[] = [];
 	let due: string | null = null;
 	let threshold: string | null = null;
 
@@ -199,8 +205,8 @@ export function parseTaskLineWithSpans(line: string): { task: Task; spans: Token
 			spans.push({ kind: "project", start: wordStart, end: wordStart + word.length });
 			continue;
 		}
-		if (word.startsWith("#") && word.length > 1) {
-			contexts.push(word.slice(1));
+		if ((word.startsWith("@") || word.startsWith("#")) && word.length > 1) {
+			contexts.push({ name: word.slice(1), prefix: word[0] as "@" | "#" });
 			spans.push({ kind: "context", start: wordStart, end: wordStart + word.length });
 			continue;
 		}
@@ -300,7 +306,7 @@ export function serializeTask(task: Task): string {
 		parts.push(`+${project}`);
 	}
 	for (const context of task.contexts) {
-		parts.push(`#${context}`);
+		parts.push(`${context.prefix}${context.name}`);
 	}
 	if (task.due) {
 		parts.push(`due:${task.due}`);

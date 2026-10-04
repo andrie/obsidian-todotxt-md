@@ -233,3 +233,50 @@ describe("detectMalformedPriority", () => {
 		expect(detectMalformedPriority("- [ ] Call the bank")).toBeNull();
 	});
 });
+
+describe("dual-prefix context support (@ and #)", () => {
+	it("recognizes a leading @ exactly like a leading #", () => {
+		const task = parseTaskLine("- [ ] Call the bank @home");
+		expect(task).not.toBeNull();
+		expect(task?.contexts).toEqual([{ name: "home", prefix: "@" }]);
+	});
+
+	it("preserves left-to-right order across mixed @ and # tokens", () => {
+		const mixed1 = parseTaskLine("- [ ] Call the bank @home #calls");
+		expect(mixed1?.contexts).toEqual([
+			{ name: "home", prefix: "@" },
+			{ name: "calls", prefix: "#" },
+		]);
+
+		const mixed2 = parseTaskLine("- [ ] Call the bank #calls @home");
+		expect(mixed2?.contexts).toEqual([
+			{ name: "calls", prefix: "#" },
+			{ name: "home", prefix: "@" },
+		]);
+	});
+
+	it("round-trips each token's original prefix exactly, no canonicalization", () => {
+		const line = "- [ ] Call the bank @home #calls";
+		const task = parseTaskLine(line);
+		expect(task).not.toBeNull();
+		if (!task) return;
+		expect(serializeTask(task)).toBe(line);
+	});
+
+	it("a lone @ with nothing after it falls through to literal description text", () => {
+		const task = parseTaskLine("- [ ] Call the bank @ now");
+		expect(task).not.toBeNull();
+		expect(task?.contexts).toEqual([]);
+		expect(task?.description).toBe("Call the bank @ now");
+	});
+
+	it("parseTaskLineWithSpans recognizes @ context spans with correct offsets", () => {
+		const line = "- [ ] Call the bank @home";
+		const result = parseTaskLineWithSpans(line);
+		expect(result).not.toBeNull();
+		if (!result) return;
+		const contextSpans = result.spans.filter((s) => s.kind === "context");
+		expect(contextSpans).toHaveLength(1);
+		expect(line.slice(contextSpans[0].start, contextSpans[0].end)).toBe("@home");
+	});
+});

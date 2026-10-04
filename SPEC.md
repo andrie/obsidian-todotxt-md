@@ -276,6 +276,16 @@ so a done task's `:` always means completion date, never creation date, even if 
 existing priority token. Added `parse.ts`'s `checkboxBodyStart()` export so this trigger reuses
 the single-source-of-truth checkbox-prefix match instead of re-deriving it.
 
+**Bug found and fixed same day:** the trigger regex's optional `(X) ` prefix (needed to detect
+leading position) was initially included in the *replacement span* as well as the match —
+selecting a date after `(A) :tod` replaced `(A) :tod` wholesale, silently deleting the priority
+along with the colon. Fixed by computing the replacement span's start from the length of
+`:query` alone, so any leading-position prefix (priority token, or nothing) is excluded from
+the span and survives untouched. Same class of bug as the 2026-09-20 trigger-boundary issue
+above, but on the *replacement* side rather than the *match* side: matching more text than the
+grammar token actually spans is dangerous on both ends — over-matching on trigger causes false
+positives, over-matching on replacement silently destroys adjacent tokens.
+
 ---
 
 ## v1 scope (ship this first)

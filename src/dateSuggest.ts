@@ -62,8 +62,11 @@ export class DateShortcutSuggest extends EditorSuggest<DateShortcutSuggestion> {
 			const leadingMatch = LEADING_DATE_TRIGGER_RE.exec(bodyBeforeCursor);
 			if (leadingMatch) {
 				const query = leadingMatch[1];
+				// The replacement span starts at the ":" itself, not at the optional
+				// "(X) " prefix the regex uses only to confirm leading position — the
+				// prefix must survive the replacement untouched.
 				return {
-					start: { line: cursor.line, ch: cursor.ch - leadingMatch[0].length },
+					start: { line: cursor.line, ch: cursor.ch - 1 - query.length },
 					end: cursor,
 					query,
 				};

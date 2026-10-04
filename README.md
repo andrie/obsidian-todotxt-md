@@ -13,9 +13,10 @@ emoji clutter of the Tasks or Task Genius plugins.
   that expands it to an ISO date (`2026-09-19`); an explicit "Expand date token" command is also
   available.
 - **In-place sort** — sort the checkbox block under your cursor by priority, then due date, then
-  creation date.
+  creation date. Also available from the editor's right-click menu.
 - **Toggle done** — mark a task complete (or back to incomplete), with the completion date
-  handled automatically per the todo.txt convention.
+  handled automatically per the todo.txt convention. Also available from the editor's right-click
+  menu.
 - **Aggregated task view** — a sortable, filterable list of every task across your vault
   (or a configured set of folders), filterable by due-date window and done state, with a
   checkbox to complete/uncomplete tasks directly from the list and click-to-jump to the source

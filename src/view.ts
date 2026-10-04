@@ -154,13 +154,13 @@ export class AggregatedTaskView extends ItemView {
 			for (const context of task.contexts) {
 				container.appendText(" ");
 				const pill = container.createSpan({
-					text: `#${context}`,
+					text: `${context.prefix}${context.name}`,
 					cls: "todotxt-md-pill todotxt-md-pill-context",
 				});
-				pill.style.backgroundColor = nameToColor(context);
+				pill.style.backgroundColor = nameToColor(context.name);
 				pill.addEventListener("click", (evt) => {
 					evt.stopPropagation();
-					this.toggleContextFilter(context);
+					this.toggleContextFilter(context.name);
 				});
 			}
 		} else {
@@ -168,7 +168,7 @@ export class AggregatedTaskView extends ItemView {
 				container.appendText(` +${project}`);
 			}
 			for (const context of task.contexts) {
-				container.appendText(` #${context}`);
+				container.appendText(` ${context.prefix}${context.name}`);
 			}
 		}
 

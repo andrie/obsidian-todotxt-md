@@ -76,7 +76,7 @@ export function aggregateTasks(
 ): TaskRecord[] {
 	const filtered = records.filter(({ task }) => {
 		if (!filter.includeDone && task.done) return false;
-		if (filter.contexts.some((c) => !task.contexts.includes(c))) return false;
+		if (filter.contexts.some((c) => !task.contexts.some((ctx) => ctx.name === c))) return false;
 		if (filter.projects.some((p) => !task.projects.includes(p))) return false;
 		if (!matchesDueWindow(task.due, filter.dueWindow, clock)) return false;
 		return true;

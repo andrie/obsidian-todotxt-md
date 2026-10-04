@@ -71,7 +71,15 @@ describe("aggregateTasks", () => {
 		const filter: AggregateFilter = { ...DEFAULT_FILTER, contexts: ["calls"] };
 		const result = aggregateTasks(records, filter, fixedClock);
 		expect(result).toHaveLength(2);
-		expect(result.every((r) => r.task.contexts.includes("calls"))).toBe(true);
+		expect(result.every((r) => r.task.contexts.some((ctx) => ctx.name === "calls"))).toBe(true);
+	});
+
+	it("filters by context regardless of whether the task used @ or # for that name", () => {
+		const atPrefixRecord = record("- [ ] Pick up dry cleaning @home", "Daily.md", 1);
+		const hashPrefixRecord = record("- [ ] Water the plants #home", "Daily.md", 2);
+		const filter: AggregateFilter = { ...DEFAULT_FILTER, contexts: ["home"] };
+		const result = aggregateTasks([atPrefixRecord, hashPrefixRecord], filter, fixedClock);
+		expect(result).toHaveLength(2);
 	});
 
 	it("filters by project", () => {

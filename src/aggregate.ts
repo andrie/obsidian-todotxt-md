@@ -18,7 +18,11 @@ export interface TaskRecord {
 export type DueWindow = "all" | "overdue" | "today" | "this-week" | "none";
 
 export interface AggregateFilter {
-	/** AND semantics: task must have ALL listed contexts. */
+	/**
+	 * AND semantics: task must have ALL listed contexts. Bare names only, prefix-blind — a
+	 * filter entry matches a task's context regardless of whether that context was typed as
+	 * `@name` or `#name` (see ContextToken in parse.ts).
+	 */
 	contexts: string[];
 	/** AND semantics: task must have ALL listed projects. */
 	projects: string[];

@@ -223,7 +223,7 @@ class TodotxtMdSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("Aggregated view pills")
-			.setDesc("Show colored +project/#context pills in the aggregated task view, with click-to-filter.")
+			.setDesc("Show colored +project/@context/#context pills in the aggregated task view, with click-to-filter.")
 			.addToggle((toggle) =>
 				toggle.setValue(this.plugin.settings.enableAggregatedViewPills).onChange(async (value) => {
 					this.plugin.settings.enableAggregatedViewPills = value;
@@ -233,7 +233,7 @@ class TodotxtMdSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("In-editor highlighting")
-			.setDesc("Color +project, #context, and date tokens inline while editing a task line.")
+			.setDesc("Color +project, @context/#context, and date tokens inline while editing a task line.")
 			.addToggle((toggle) =>
 				toggle.setValue(this.plugin.settings.enableInEditorHighlight).onChange(async (value) => {
 					this.plugin.settings.enableInEditorHighlight = value;

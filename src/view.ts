@@ -226,7 +226,10 @@ export class AggregatedTaskView extends ItemView {
 		}
 		for (const context of this.filter.contexts) {
 			const chip = chipBar.createSpan({ cls: "todotxt-md-filter-chip" });
-			chip.createSpan({ text: `#${context}` });
+			// No prefix character: this filter entry is prefix-blind by design (it can match
+			// both @context and #context tokens sharing this name), so neither @ nor # would
+			// be accurate here.
+			chip.createSpan({ text: context });
 			const remove = chip.createSpan({ text: " ×", cls: "todotxt-md-filter-chip-remove" });
 			remove.addEventListener("click", () => this.toggleContextFilter(context));
 		}

@@ -34,6 +34,20 @@ const PRIORITY_RE = /^\(([A-Za-z])\)\s*/;
 const LEADING_DATE_RE = /^(\d{4}-\d{2}-\d{2})\s+/;
 
 /**
+ * Returns the offset into `line` where the checkbox body starts (immediately after
+ * "- [ ] "/"- [x] "), or null if `line` isn't a Markdown checkbox. Single source of truth for
+ * "where does the checkbox prefix end" — callers outside parse.ts (e.g. dateSuggest.ts's
+ * leading-position trigger) use this instead of re-deriving the checkbox shape with their own
+ * regex (DESIGN_RULES.md: parse.ts owns all task-syntax matching).
+ */
+export function checkboxBodyStart(line: string): number | null {
+	const checkboxMatch = CHECKBOX_RE.exec(line);
+	if (!checkboxMatch) return null;
+	const [, prefix, mark, bracketClose] = checkboxMatch;
+	return prefix.length + mark.length + bracketClose.length;
+}
+
+/**
  * Parses a single line. Returns null iff the line is not a Markdown checkbox — that is the
  * only gate (see SPEC.md "Parse leniency contract"). Once a line passes the checkbox gate,
  * the body always parses successfully: recognized tokens populate Task fields in the order

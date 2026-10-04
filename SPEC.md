@@ -265,6 +265,17 @@ trigger logic: **substring matches on grammar tokens are not enough — always r
 boundary conditions the parser itself enforces**, or the trigger will fire in contexts the
 grammar wouldn't recognize as that token.
 
+**Extended 2026-10-04** (`src/dateSuggest.ts`): added a second trigger for a bare `:` in the
+leading position — immediately after the checkbox, or immediately after a priority token
+`(X)` — to cover the spec's leading bare-date slot (creation date on a not-done task;
+completion date on a done task), which has no `key:` prefix to type and so couldn't reach the
+existing `due:`/`t:` trigger. The colon is pure trigger syntax (never persisted) and is
+consumed on selection along with the replaced text. Which `Task` field the result conceptually
+targets is decided solely by `task.done` — not by cursor position among the leading tokens —
+so a done task's `:` always means completion date, never creation date, even if typed after an
+existing priority token. Added `parse.ts`'s `checkboxBodyStart()` export so this trigger reuses
+the single-source-of-truth checkbox-prefix match instead of re-deriving it.
+
 ---
 
 ## v1 scope (ship this first)

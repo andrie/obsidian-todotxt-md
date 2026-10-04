@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { parseTaskLine, serializeTask, parseTaskLineWithSpans, detectMalformedPriority } from "../src/parse";
+import {
+	parseTaskLine,
+	serializeTask,
+	parseTaskLineWithSpans,
+	detectMalformedPriority,
+	checkboxBodyStart,
+} from "../src/parse";
 import { fixtures } from "./fixtures/tasks";
 
 describe("parseTaskLine", () => {
@@ -18,6 +24,31 @@ describe("parseTaskLine", () => {
 	it("preserves leading indentation", () => {
 		const task = parseTaskLine("  - [ ] Nested task");
 		expect(task?.indent).toBe("  ");
+	});
+});
+
+describe("checkboxBodyStart", () => {
+	it("returns null for non-checkbox lines", () => {
+		expect(checkboxBodyStart("Call the bank")).toBeNull();
+		expect(checkboxBodyStart("")).toBeNull();
+	});
+
+	it("returns the offset immediately after the checkbox marker", () => {
+		const line = "- [ ] (A) Call the bank";
+		const start = checkboxBodyStart(line);
+		expect(start).not.toBeNull();
+		expect(line.slice(start!)).toBe("(A) Call the bank");
+	});
+
+	it("accounts for leading indentation", () => {
+		const line = "  - [x] 2026-09-19 Call the bank";
+		const start = checkboxBodyStart(line);
+		expect(line.slice(start!)).toBe("2026-09-19 Call the bank");
+	});
+
+	it("works for a bare checkbox with no body", () => {
+		const line = "- [ ]";
+		expect(checkboxBodyStart(line)).toBe(line.length);
 	});
 });
 

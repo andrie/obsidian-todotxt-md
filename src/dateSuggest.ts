@@ -7,16 +7,28 @@ import {
 	EditorSuggestTriggerInfo,
 	TFile,
 } from "obsidian";
-import { parseTaskLine } from "./parse";
+import { parseTaskLine, checkboxBodyStart } from "./parse";
 import { suggestDateShortcuts, type DateShortcutSuggestion, type Clock } from "./dates";
 
 const TRIGGER_RE = /(?:^|\s)(?:due|t):([A-Za-z0-9+]*)$/;
 
 /**
- * Live date-shortcut popup. Triggers only immediately after "due:" or "t:" on a checkbox
- * line (DESIGN_RULES.md section 1.4 "assist, don't nag") — never on generic prose, even
- * prose starting with a date-shortcut-looking word. Additive to the explicit "Expand date
- * token" command in editor.ts; both call into the same dates.ts core.
+ * Leading-position trigger: a bare ":" immediately after the checkbox, or immediately after
+ * a priority token, with nothing else before it. Unlike TRIGGER_RE, this is anchored to the
+ * start of the body (not "anywhere preceded by whitespace") because a bare ":" has no
+ * grammar meaning anywhere else — it's pure trigger syntax, never persisted (see
+ * SPEC.md "Editor mechanics" boundary-condition lesson re: due:/t:). Which Task field this
+ * conceptually fills (creationDate vs. completionDate) is decided solely by task.done, not by
+ * cursor position — a done task's ":" always means completion date.
+ */
+const LEADING_DATE_TRIGGER_RE = /^(?:\([A-Za-z]\)\s+)?:([A-Za-z0-9+]*)$/;
+
+/**
+ * Live date-shortcut popup. Triggers immediately after "due:"/"t:" anywhere on a checkbox
+ * line, or after a bare leading ":" (right after the checkbox or after a priority token) —
+ * (DESIGN_RULES.md section 1.4 "assist, don't nag") — never on generic prose, even prose
+ * starting with a date-shortcut-looking word. Additive to the explicit "Expand date token"
+ * command in editor.ts; both call into the same dates.ts core.
  */
 export class DateShortcutSuggest extends EditorSuggest<DateShortcutSuggestion> {
 	private enabled = true;
@@ -43,6 +55,21 @@ export class DateShortcutSuggest extends EditorSuggest<DateShortcutSuggestion> {
 		if (!parseTaskLine(line)) return null;
 
 		const beforeCursor = line.slice(0, cursor.ch);
+
+		const bodyStart = checkboxBodyStart(line);
+		if (bodyStart !== null && cursor.ch >= bodyStart) {
+			const bodyBeforeCursor = line.slice(bodyStart, cursor.ch);
+			const leadingMatch = LEADING_DATE_TRIGGER_RE.exec(bodyBeforeCursor);
+			if (leadingMatch) {
+				const query = leadingMatch[1];
+				return {
+					start: { line: cursor.line, ch: cursor.ch - leadingMatch[0].length },
+					end: cursor,
+					query,
+				};
+			}
+		}
+
 		const match = TRIGGER_RE.exec(beforeCursor);
 		if (!match) return null;
 

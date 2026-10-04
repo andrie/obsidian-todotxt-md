@@ -45,8 +45,11 @@
    user typed by hand are preserved on read; canonical order is only enforced when the plugin
    rewrites a line.
 4. **Deliberate deviations from pure todo.txt are documented, not accidental.** Current
-   deviations: contexts use `#tag` (not `@context`). Any new deviation must be recorded in
-   `SPEC.md`'s decisions table with a one-line rationale.
+   deviations: none for contexts as of 2026-10-03 — both `@context` (pure todo.txt spec) and
+   `#tag` (Obsidian-native tag-pane integration) are accepted, each token's original prefix is
+   preserved exactly on every rewrite, and neither is silently converted to the other. See
+   `DECISIONS.md` (2026-10-03 entry) for the trade-off reasoning. Any *new* deviation must still
+   be recorded in `SPEC.md`'s decisions table with a one-line rationale.
 5. **Dates are ISO `YYYY-MM-DD` in storage.** Human shortcuts (`tod`, `tom`, weekdays,
    `+3d`) are *input conveniences* expanded at edit time — they are never persisted.
 

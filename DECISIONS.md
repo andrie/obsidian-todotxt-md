@@ -6,6 +6,60 @@
 
 ---
 
+## 2026-10-03 — Partial reversal: accept `@context` alongside `#tag`, prefix preserved per-token
+
+### Context
+
+The 2026-09-20 decision (see entry below) replaced todo.txt's standard `@context` with
+Obsidian-native `#tag` as a one-for-one substitution, specifically for free tag-pane/search
+indexing. Manually testing the token-visual-affordances feature (colored pills, click-to-filter)
+in a real vault surfaced that this substitution left `@place`-style tokens with no color/pill/
+filter support at all, and the user flagged that forcing a single spelling discards real value
+from the todo.txt spec — specifically, compatibility with other todo.txt tools when moving tasks
+between them.
+
+### Decision
+
+**Both `@context` and `#context` are now accepted as first-class, equally valid spellings of the
+same underlying concept.** `Task.contexts` changes from `string[]` to `ContextToken[]`
+(`{ name: string; prefix: "@" | "#" }`), so each token's original prefix is preserved exactly on
+every rewrite — no canonicalization, no settings-driven default. Color and filter identity
+(`nameToColor`, click-to-filter, the aggregated view's filter-chip bar) are keyed on the bare
+`name` only, prefix-blind: `@home` and `#home` render the identical color and populate the same
+filter entry, since they represent the same real-world context under two different spellings.
+
+### Why this doesn't reverse the whole 2026-09-20 decision
+
+This is a **partial** reversal, scoped strictly to the context-token spelling question. The
+`due:`/Dataview-interop stance, the aggregated view's role as the native due-date query mechanism,
+and the emoji-rejection principle from that decision all stand unchanged — see the 2026-09-20
+entry below for that reasoning, which this entry does not revisit.
+
+### Costs / trade-offs accepted
+
+- A user who writes `@home` instead of `#home` knowingly forgoes Obsidian's native tag-pane/search
+  indexing for that specific token — `#` is Obsidian's real tag syntax, `@` is not, and no
+  amount of plugin-side color/filter support substitutes for that platform-level integration.
+  This is treated as an accepted, informed trade-off (the user's explicit choice), not something
+  the plugin tries to mitigate via a warning or nudge.
+- `Task.contexts`'s type changed from `string[]` to `ContextToken[]`, a breaking change to the
+  parser's own output shape — every consumer (`aggregate.ts`'s filter matching, `view.ts`'s pill
+  rendering, every fixture in `tests/fixtures/tasks.ts`) needed updating in lockstep. No consumer
+  outside this project's own codebase is known to depend on the old shape (no public API surface
+  beyond this plugin's own `main.js` bundle), so this was judged an acceptable one-time cost.
+
+### Reversibility
+
+If this proves to add more parsing/type complexity than value in practice (e.g. users
+overwhelmingly prefer one spelling and never use the other), the simplest rollback is **not**
+re-removing `@` recognition — that would silently break any task already using `@context`, which
+DESIGN_RULES.md explicitly treats as the thing to avoid. Instead, a future decision could add a
+one-time, explicitly user-invoked "canonicalize all contexts to `#`" command, leaving the dual
+parse-time recognition in place permanently (parsing leniency costs nothing; serialization
+defaults can still change).
+
+---
+
 ## 2026-09-21 — Correction: rioskit/obsidian-todo-txt-mode is not file-extension-restricted
 
 ### Context

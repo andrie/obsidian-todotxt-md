@@ -204,7 +204,8 @@ Standard Obsidian plugin scaffold. Module layout:
 - `src/priority.ts` — `bumpPriority(task, +1|-1)` cycling `(A)…(Z)`/none.
 - `src/dates.ts` — token expansion: `tod`→today, `tom`→tomorrow, `mon`/`tue`/…→next weekday,
   `+3d`/`+1w`→relative. Pure + testable (inject a "today" clock so tests are deterministic).
-- `src/sort.ts` — `sortLines(lines[], comparator)`; default comparator = priority asc, then
+- `src/sort.ts` — `sortLines(lines[], comparator)`; default comparator = incomplete before done
+  (per todo.txt spec convention — completed tasks sort to the bottom), then priority asc, then
   `due` asc, then creation date. Operates on a contiguous list block. **Read
   `artem98/obsidian_tasks_sort` first** for cursor-block detection (blank line / non-task line
   ends the block) and the in-place line-rewrite technique.

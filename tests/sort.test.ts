@@ -42,6 +42,24 @@ describe("sortLines", () => {
 		const input = ["not a task", "- [ ] (A) a task"];
 		expect(sortLines(input)).toEqual(["- [ ] (A) a task", "not a task"]);
 	});
+
+	it("sorts completed tasks after all incomplete tasks, regardless of priority/dates", () => {
+		const input = [
+			"- [x] 2026-09-21 (A) done with high priority",
+			"- [ ] (C) incomplete lower priority",
+			"- [ ] (A) incomplete high priority",
+		];
+		expect(sortLines(input)).toEqual([
+			"- [ ] (A) incomplete high priority",
+			"- [ ] (C) incomplete lower priority",
+			"- [x] 2026-09-21 (A) done with high priority",
+		]);
+	});
+
+	it("breaks ties among completed tasks the same way as incomplete ones", () => {
+		const input = ["- [x] (B) second done", "- [x] (A) first done"];
+		expect(sortLines(input)).toEqual(["- [x] (A) first done", "- [x] (B) second done"]);
+	});
 });
 
 describe("compareTasks", () => {

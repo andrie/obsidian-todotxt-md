@@ -59,6 +59,14 @@ settings:
 	color: var(--text-muted);
 }
 
+.todotxt-md-field-suggestion-label {
+	font-weight: 600;
+}
+
+.todotxt-md-suggestion-muted {
+	color: var(--text-muted);
+}
+
 .todotxt-md-filter-controls {
 	display: flex;
 	gap: 0.5em;

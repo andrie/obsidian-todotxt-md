@@ -6,7 +6,8 @@ import {
 	toggleDoneAtCursor,
 } from "./editor";
 import { parseTaskLine } from "./parse";
-import { DateShortcutSuggest } from "./dateSuggest";
+import { TaskFieldSuggest } from "./taskSuggest";
+import { VocabIndex } from "./vocabIndex";
 import { AggregatedTaskView, TASK_VIEW_TYPE } from "./view";
 import { buildHighlightExtension } from "./highlight";
 import type { DueWindow } from "./aggregate";
@@ -15,6 +16,8 @@ import type { Clock } from "./dates";
 interface TodotxtMdSettings {
 	defaultPriority: string;
 	enableDateSuggest: boolean;
+	enableFieldMenu: boolean;
+	suggestMaxItems: number;
 	scanFolders: string[];
 	defaultDueWindow: DueWindow;
 	enableAggregatedViewPills: boolean;
@@ -24,6 +27,8 @@ interface TodotxtMdSettings {
 const DEFAULT_SETTINGS: TodotxtMdSettings = {
 	defaultPriority: "A",
 	enableDateSuggest: true,
+	enableFieldMenu: true,
+	suggestMaxItems: 10,
 	scanFolders: [],
 	defaultDueWindow: "all",
 	enableAggregatedViewPills: true,
@@ -44,18 +49,32 @@ function isValidScanFolders(value: unknown): value is string[] {
 	return Array.isArray(value) && value.every((v) => typeof v === "string");
 }
 
+function isValidMaxItems(value: unknown): value is number {
+	return typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= 50;
+}
+
 const systemClock: Clock = () => new Date();
 
 export default class TodotxtMdPlugin extends Plugin {
 	settings: TodotxtMdSettings = DEFAULT_SETTINGS;
-	dateSuggest!: DateShortcutSuggest;
+	taskSuggest!: TaskFieldSuggest;
+	vocabIndex!: VocabIndex;
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
 
-		this.dateSuggest = new DateShortcutSuggest(this.app, systemClock);
-		this.dateSuggest.setEnabled(this.settings.enableDateSuggest);
-		this.registerEditorSuggest(this.dateSuggest);
+		this.vocabIndex = new VocabIndex(this.app, () => this.settings.scanFolders);
+		this.vocabIndex.register(this);
+		this.taskSuggest = new TaskFieldSuggest(this.app, systemClock, this.vocabIndex);
+		this.taskSuggest.configure({
+			enabled: this.settings.enableDateSuggest,
+			fieldMenu: this.settings.enableFieldMenu,
+			maxItems: this.settings.suggestMaxItems,
+		});
+		this.registerEditorSuggest(this.taskSuggest);
+		this.app.workspace.onLayoutReady(() => {
+			void this.vocabIndex.get();
+		});
 
 		this.registerEditorExtension(
 			buildHighlightExtension(() => this.settings.enableInEditorHighlight),
@@ -72,15 +91,13 @@ export default class TodotxtMdPlugin extends Plugin {
 		this.addCommand({
 			id: "increase-priority",
 			name: "Increase priority",
-			editorCallback: (editor) =>
-				bumpPriorityAtCursor(editor, -1, this.settings.defaultPriority),
+			editorCallback: (editor) => bumpPriorityAtCursor(editor, -1, this.settings.defaultPriority),
 		});
 
 		this.addCommand({
 			id: "decrease-priority",
 			name: "Decrease priority",
-			editorCallback: (editor) =>
-				bumpPriorityAtCursor(editor, 1, this.settings.defaultPriority),
+			editorCallback: (editor) => bumpPriorityAtCursor(editor, 1, this.settings.defaultPriority),
 		});
 
 		this.addCommand({
@@ -135,6 +152,14 @@ export default class TodotxtMdPlugin extends Plugin {
 				loaded && typeof loaded.enableDateSuggest === "boolean"
 					? loaded.enableDateSuggest
 					: DEFAULT_SETTINGS.enableDateSuggest,
+			enableFieldMenu:
+				loaded && typeof loaded.enableFieldMenu === "boolean"
+					? loaded.enableFieldMenu
+					: DEFAULT_SETTINGS.enableFieldMenu,
+			suggestMaxItems:
+				loaded && isValidMaxItems(loaded.suggestMaxItems)
+					? loaded.suggestMaxItems
+					: DEFAULT_SETTINGS.suggestMaxItems,
 			scanFolders:
 				loaded && isValidScanFolders(loaded.scanFolders)
 					? loaded.scanFolders
@@ -197,13 +222,42 @@ class TodotxtMdSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Date shortcut suggestions")
-			.setDesc('Show a live popup with date-shortcut suggestions after typing "due:" or "t:".')
+			.setName("Inline suggestions")
+			.setDesc(
+				'Master switch for the live popups: date shortcuts after "due:"/"t:", the field menu, and +project/@place completion.',
+			)
 			.addToggle((toggle) =>
 				toggle.setValue(this.plugin.settings.enableDateSuggest).onChange(async (value) => {
 					this.plugin.settings.enableDateSuggest = value;
-					this.plugin.dateSuggest.setEnabled(value);
+					this.plugin.taskSuggest.configure({ enabled: value });
 					await this.plugin.saveSettings();
+				}),
+			);
+
+		new Setting(containerEl)
+			.setName("Field menu on space")
+			.setDesc(
+				"After typing a space on a task line, offer a menu of fields (priority, created date, due:, t:, +, @, #). Press Esc to dismiss it.",
+			)
+			.addToggle((toggle) =>
+				toggle.setValue(this.plugin.settings.enableFieldMenu).onChange(async (value) => {
+					this.plugin.settings.enableFieldMenu = value;
+					this.plugin.taskSuggest.configure({ fieldMenu: value });
+					await this.plugin.saveSettings();
+				}),
+			);
+
+		new Setting(containerEl)
+			.setName("Max suggestions")
+			.setDesc("Most items shown in the field menu and the +project/@place lists (1-50).")
+			.addText((text) =>
+				text.setValue(String(this.plugin.settings.suggestMaxItems)).onChange(async (value) => {
+					const parsed = Number(value);
+					if (isValidMaxItems(parsed)) {
+						this.plugin.settings.suggestMaxItems = parsed;
+						this.plugin.taskSuggest.configure({ maxItems: parsed });
+						await this.plugin.saveSettings();
+					}
 				}),
 			);
 
@@ -219,6 +273,8 @@ class TodotxtMdSettingTab extends PluginSettingTab {
 						.map((line) => line.trim())
 						.filter((line) => line.length > 0);
 					this.plugin.settings.scanFolders = folders;
+					this.plugin.vocabIndex.invalidate();
+					void this.plugin.vocabIndex.get();
 					await this.plugin.saveSettings();
 				}),
 			);
@@ -244,7 +300,9 @@ class TodotxtMdSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("Aggregated view pills")
-			.setDesc("Show colored +project/@context/#context pills in the aggregated task view, with click-to-filter.")
+			.setDesc(
+				"Show colored +project/@context/#context pills in the aggregated task view, with click-to-filter.",
+			)
 			.addToggle((toggle) =>
 				toggle.setValue(this.plugin.settings.enableAggregatedViewPills).onChange(async (value) => {
 					this.plugin.settings.enableAggregatedViewPills = value;
@@ -254,7 +312,9 @@ class TodotxtMdSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("In-editor highlighting")
-			.setDesc("Color +project, @context/#context, and date tokens inline while editing a task line.")
+			.setDesc(
+				"Color +project, @context/#context, and date tokens inline while editing a task line.",
+			)
 			.addToggle((toggle) =>
 				toggle.setValue(this.plugin.settings.enableInEditorHighlight).onChange(async (value) => {
 					this.plugin.settings.enableInEditorHighlight = value;

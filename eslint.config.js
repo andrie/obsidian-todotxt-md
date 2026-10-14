@@ -31,7 +31,16 @@ export default [
 		// Pure core modules are the grammar's single source of truth (see DESIGN_RULES.md
 		// section 4.1) — `any` here defeats the point of a typed Task model, so it's a
 		// build-time error rather than an honor-system rule.
-		files: ["src/parse.ts", "src/priority.ts", "src/dates.ts", "src/sort.ts", "src/aggregate.ts"],
+		files: [
+			"src/parse.ts",
+			"src/priority.ts",
+			"src/dates.ts",
+			"src/sort.ts",
+			"src/aggregate.ts",
+			"src/vocab.ts",
+			"src/triggers.ts",
+			"src/suggestFields.ts",
+		],
 		rules: {
 			"@typescript-eslint/no-explicit-any": "error",
 		},

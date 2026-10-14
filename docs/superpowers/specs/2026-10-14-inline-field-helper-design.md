@@ -111,7 +111,15 @@ task dependencies, and unifying the aggregated view's scan with the vocabulary i
 - **Interop guard:** `#tag` still indexes in the tag pane and a Dataview `TASK` query still lists
   tasks after helper-built lines.
 
+## Ranking
+
+- **`+` and `@` popups:** names are ordered by how many vault tasks use them, most frequent
+  first, so the 5 most-used names sit at the top. Ties break alphabetically. Typing filters the
+  list; the frequency order is kept within the filtered results.
+- **Field menu rows:** a fixed order (Priority, Date, `due:`, `t:`, `+ Project`, `@ Place`,
+  `# Context`), with fields already on the task removed. No tap tracking, so no stored usage
+  state.
+
 ## Open questions
 
-1. Should `vocabIndex.ts` later replace the view's private scan, giving one shared task index?
-2. How should the field menu rank rows: fixed order, or by how often the user picks each?
+None.

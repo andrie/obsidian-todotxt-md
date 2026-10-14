@@ -36,7 +36,8 @@ See `DESIGN_RULES.md` for the full set.
 
 - Priority `(A)`-`(Z)`
 - Projects `+Project`
-- Contexts `#tag`, a deliberate deviation from `todo.txt`'s `@context`
+- Contexts `#tag` or `@context`, both first-class; each token's original prefix is preserved
+  on every rewrite (see `DECISIONS.md`, 2026-10-03)
 - Dates ISO `YYYY-MM-DD` (`due:`, optional `t:` threshold)
 - Human date shortcuts (`tod`, `tom`, weekdays, `+3d`) are input-only: they expand at edit time
   and are never persisted
@@ -77,6 +78,28 @@ npm run build     # type-check + production build
 ```
 
 See `SPEC.md` and `DESIGN_RULES.md` for the full grammar contract and architectural rules.
+
+## Release process
+
+Obsidian plugins (and BRAT, used for pre-release testing) install from a GitHub Release's
+binary assets, not from source. A tag alone is not enough; the release must have `main.js`,
+`manifest.json`, and `styles.css` attached, or BRAT reports "no releases found."
+
+1. Bump `version` in `manifest.json` (and `versions.json` if present) using semver.
+2. Build production output: `npm run build`. This produces `main.js` at the repo root.
+3. Commit the version bump if `manifest.json` changed.
+4. Tag the release with the bare version number, matching `manifest.json` exactly (no `v`
+   prefix), and push the tag:
+   ```bash
+   git tag <version>
+   git push origin <version>
+   ```
+5. Create the GitHub release with the three build artifacts attached as assets:
+   ```bash
+   gh release create <version> main.js manifest.json styles.css --title "<version>" --notes "..."
+   ```
+6. To test via BRAT before a public release, install BRAT in a test vault, add this repo under
+   BRAT's "Add Beta Plugin," and use "Check for updates" after publishing a new release.
 
 ## Definition of done
 

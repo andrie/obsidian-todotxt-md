@@ -29,6 +29,9 @@ legible as plain text with or without the plugin installed.
 - Priority hotkeys bump a task's priority (`(A)`-`(Z)`) up or down with a keystroke
 - Quick date entry expands `due:tod`, `due:mon`, `due:+3d` to an ISO date (`2026-09-19`) via a
   live suggestion popup, or an explicit "Expand date token" command
+- Inline field helper: after typing a space on a task line, a menu offers priority, created
+  date, `due:`, `t:`, `+project`, `@place` and `#tag`, so you can build a task by tapping (handy
+  on mobile). Typing `+` or `@` lists names already used in your tasks, most used first
 - In-place sort orders the checkbox block under your cursor by priority, then due date, then
   creation date; also available from the editor's right-click menu
 - Toggle done marks a task complete or incomplete and handles the completion date automatically,
@@ -65,7 +68,9 @@ plugin installed.
 ## Settings
 
 - Default priority: the priority assigned when you increase priority from none
-- Date shortcut suggestions: toggle the live popup after typing `due:`/`t:`
+- Inline suggestions: master switch for the live popups (date shortcuts, field menu, `+`/`@` lists)
+- Field menu on space: show or hide the field menu that appears after a typed space
+- Max suggestions: most items shown in the field menu and the `+`/`@` lists
 - Scan folders: restrict the aggregated view to specific folders (default: whole vault)
 - Default due window: the due-date filter shown when the aggregated view first opens
 

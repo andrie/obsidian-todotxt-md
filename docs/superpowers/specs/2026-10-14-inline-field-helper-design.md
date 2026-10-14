@@ -43,7 +43,8 @@ preserved per token.
 | `src/suggestFields.ts` | pure, unit-tested | Given a parsed `Task`, cursor offset and vocabulary, return the field-menu suggestions, each carrying a semantic edit. Omits fields already present. |
 | `src/vocab.ts` | pure, unit-tested | Build frequency-ranked `+project`, `@name` and `#name` lists from parsed tasks. Names are kept per prefix. |
 | `src/vocabIndex.ts` | Obsidian glue | Plugin-owned cache of the vocabulary. Lazy first scan of the vault (honouring `scanFolders`), then per-file updates on `modify`, `create`, `delete` and `rename`. |
-| `src/dateSuggest.ts` | Obsidian glue | The single `EditorSuggest`, extended with the new triggers. May be renamed `taskSuggest.ts`. |
+| `src/triggers.ts` | pure, unit-tested | Decide which popup (if any) the cursor position opens, and which span a selection replaces. Holds the trigger-syntax regexes previously in `dateSuggest.ts`. |
+| `src/taskSuggest.ts` | Obsidian glue | The single `EditorSuggest` (renamed from `dateSuggest.ts`), extended with the new triggers. |
 
 `parse.ts` remains the only place the grammar is defined. Nothing in these units uses
 task-syntax regexes of its own; trigger boundary checks use `parse.ts` exports
@@ -59,7 +60,7 @@ parser defines them.
 
 | Trigger | Popup |
 |---|---|
-| Space after a word (setting) | Field menu: `(A) Priority`, `: Date`, `due:`, `t:`, `+ Project`, `@ Place`, `# Context`, minus fields already on the task |
+| Space after a word (setting) | Field menu: `Priority`, `Created`, `due:`, `t:`, `+ Project`, `@ Place`, `# Context`, minus fields already on the task |
 | `+` | Known projects, filtered by what follows |
 | `@` | Known `@` names, filtered by what follows |
 | `#` | Not ours. Obsidian's native tag popup handles it. |
@@ -67,10 +68,15 @@ parser defines them.
 
 ### Selection and chaining
 
-- **Due / `t:` / Date:** insert `due:` (or `t:`, or `:`); the existing date trigger then fires, so
-  the user finishes in two taps.
-- **Priority:** opens an A to E sub-list. Choosing a letter sets `task.priority` on the parsed
-  task and re-serialises, so `(X)` lands in the leading slot wherever the cursor was.
+- **Due / `t:`:** insert `due:` (or `t:`); the existing date trigger then fires, so the user
+  finishes in two taps.
+- **Created:** inserts today's ISO date directly in the leading slot (after any priority).
+  Offered only on not-done tasks with no creation date. No sub-list; other dates come from the
+  `due:` / `t:` / leading `:` popups.
+- **Priority:** inserts a transient `!` and the same popup shows an A to E sub-list. Choosing a
+  letter removes the `!query` and inserts `(X) ` in the leading slot (after the completion date
+  on a done task). The edit is a local insertion computed from `parseTaskLineWithSpans`; the line
+  is not re-serialised, so tokens the user is mid-typing are never reordered.
 - **`+ Project` / `@ Place`:** insert the symbol; the vocabulary popup follows.
 - **`# Context`:** inserts `#`; Obsidian's native popup takes over.
 - **Vocabulary selection:** inserts the name with the prefix the user typed. A `@` name is never
@@ -89,6 +95,9 @@ parser defines them.
 
 - Enter and Tab pass through when the popup has nothing relevant. No synthetic `⏎` row.
 - Esc dismisses. The popup never opens on non-task lines or in prose.
+- Known limitation: while the field menu is showing (immediately after a typed space), Enter
+  selects the highlighted row. The menu never appears on an empty body, can be dismissed with
+  Esc, and can be switched off in settings.
 
 ### Settings
 

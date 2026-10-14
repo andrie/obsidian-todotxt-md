@@ -287,6 +287,15 @@ above, but on the *replacement* side rather than the *match* side: matching more
 grammar token actually spans is dangerous on both ends — over-matching on trigger causes false
 positives, over-matching on replacement silently destroys adjacent tokens.
 
+**Extended 2026-10-14** (`src/taskSuggest.ts`, `src/triggers.ts`, `src/suggestFields.ts`,
+`src/vocab.ts`, `src/vocabIndex.ts`; see
+`docs/superpowers/specs/2026-10-14-inline-field-helper-design.md`): the single `EditorSuggest`
+now also offers a field menu after a typed space, `+project` / `@place` completion ranked by
+vault-wide frequency, and a `!` priority sub-list; selecting a menu row inserts transient
+trigger text so the next popup fires. Trigger detection and edit planning moved into pure,
+tested modules (`dateSuggest.ts` was renamed `taskSuggest.ts`). `#` is left to Obsidian's native
+tag popup.
+
 ---
 
 ## v1 scope (ship this first)

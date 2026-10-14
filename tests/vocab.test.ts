@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { extractFileVocab, mergeVocab, rankVocab, isInScanFolders } from "../src/vocab";
+import {
+	extractFileVocab,
+	mergeVocab,
+	rankVocab,
+	isInScanFolders,
+	adjustVocab,
+} from "../src/vocab";
 
 describe("extractFileVocab", () => {
 	it("counts projects, @ names and # names separately, from task lines only", () => {
@@ -62,17 +68,36 @@ describe("rankVocab", () => {
 		expect(rankVocab(counts, "", 2).map((e) => e.name)).toEqual(["Work", "Finance"]);
 	});
 
-	it("does not offer the token being typed back to itself when it is used once", () => {
-		const typing = new Map([
-			["Fin", 1],
-			["Finance", 4],
-		]);
-		expect(rankVocab(typing, "Fin", 10).map((e) => e.name)).toEqual(["Finance"]);
+	it("offers an exact match even when it is used only once elsewhere", () => {
+		const used = new Map([["Fin", 1]]);
+		expect(rankVocab(used, "Fin", 10).map((e) => e.name)).toEqual(["Fin"]);
+	});
+});
+
+describe("adjustVocab", () => {
+	it("swaps one file's cached contribution for its live content", () => {
+		// The open note was autosaved with a half-typed "+Finan"; the live text no longer has it.
+		const cachedActive = extractFileVocab(["- [ ] a +Finan"]);
+		const other = extractFileVocab(["- [ ] b +Finance"]);
+		const base = mergeVocab([cachedActive, other]);
+		const live = extractFileVocab([]);
+		const adjusted = adjustVocab(base, cachedActive, live);
+		expect(adjusted.project.has("Finan")).toBe(false);
+		expect(adjusted.project.get("Finance")).toBe(1);
 	});
 
-	it("still offers an exact match that is genuinely used more than once", () => {
-		const used = new Map([["Fin", 3]]);
-		expect(rankVocab(used, "Fin", 10).map((e) => e.name)).toEqual(["Fin"]);
+	it("adds live content when the file has no cached entry", () => {
+		const base = mergeVocab([extractFileVocab(["- [ ] b +Work"])]);
+		const adjusted = adjustVocab(base, undefined, extractFileVocab(["- [ ] a +Work @home"]));
+		expect(adjusted.project.get("Work")).toBe(2);
+		expect(adjusted.at.get("home")).toBe(1);
+	});
+
+	it("does not mutate the base vocabulary", () => {
+		const cached = extractFileVocab(["- [ ] a +Fin"]);
+		const base = mergeVocab([cached]);
+		adjustVocab(base, cached, extractFileVocab([]));
+		expect(base.project.get("Fin")).toBe(1);
 	});
 });
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { detectTrigger } from "../src/triggers";
+import { detectTrigger, isSingleSpaceInsertion, TypedSpaceTracker } from "../src/triggers";
 
 const on = { fieldMenu: true };
 const off = { fieldMenu: false };
@@ -105,5 +105,59 @@ describe("field menu trigger", () => {
 
 	it("does not fire with the cursor inside the checkbox prefix", () => {
 		expect(detectTrigger("- [ ] Call ", 3, on)).toBeNull();
+	});
+});
+
+describe("isSingleSpaceInsertion", () => {
+	it("is true when exactly one space was typed at ch-1", () => {
+		expect(isSingleSpaceInsertion("- [ ] Call", "- [ ] Call ", 11)).toBe(true);
+		expect(isSingleSpaceInsertion("- [ ] Callbank", "- [ ] Call bank", 11)).toBe(true);
+	});
+
+	it("is false for cursor-only moves and other edits", () => {
+		expect(isSingleSpaceInsertion("- [ ] Call ", "- [ ] Call ", 11)).toBe(false);
+		expect(isSingleSpaceInsertion("- [ ] Call +Fi", "- [ ] Call +Finance ", 20)).toBe(false);
+		expect(isSingleSpaceInsertion("- [ ] Call", "- [ ] Call x", 12)).toBe(false);
+	});
+});
+
+describe("TypedSpaceTracker", () => {
+	it("allows the menu right after a typed space, and for unchanged re-checks", () => {
+		const t = new TypedSpaceTracker();
+		t.observe(0, "- [ ] Call", 10);
+		t.observe(0, "- [ ] Call ", 11);
+		expect(t.isTyped(0, "- [ ] Call ", 11)).toBe(true);
+		t.observe(0, "- [ ] Call ", 11);
+		expect(t.isTyped(0, "- [ ] Call ", 11)).toBe(true);
+	});
+
+	it("does not allow the menu when the cursor merely lands after a space", () => {
+		const t = new TypedSpaceTracker();
+		t.observe(0, "- [ ] Call bank", 15);
+		t.observe(0, "- [ ] Call bank", 11);
+		expect(t.isTyped(0, "- [ ] Call bank", 11)).toBe(false);
+	});
+
+	it("does not allow the menu after a selection leaves a trailing space", () => {
+		const t = new TypedSpaceTracker();
+		t.observe(0, "- [ ] Call +Fi", 14);
+		t.observe(0, "- [ ] Call +Finance ", 20);
+		expect(t.isTyped(0, "- [ ] Call +Finance ", 20)).toBe(false);
+	});
+
+	it("closes once the cursor moves, the text changes, or the line differs", () => {
+		const t = new TypedSpaceTracker();
+		t.observe(0, "- [ ] Call", 10);
+		t.observe(0, "- [ ] Call ", 11);
+		expect(t.isTyped(0, "- [ ] Call ", 5)).toBe(false);
+		expect(t.isTyped(1, "- [ ] Call ", 11)).toBe(false);
+		t.observe(0, "- [ ] Call x", 12);
+		expect(t.isTyped(0, "- [ ] Call x", 12)).toBe(false);
+	});
+
+	it("does not treat a first observation as typed", () => {
+		const t = new TypedSpaceTracker();
+		t.observe(0, "- [ ] Call ", 11);
+		expect(t.isTyped(0, "- [ ] Call ", 11)).toBe(false);
 	});
 });

@@ -273,8 +273,8 @@ class TodotxtMdSettingTab extends PluginSettingTab {
 						.map((line) => line.trim())
 						.filter((line) => line.length > 0);
 					this.plugin.settings.scanFolders = folders;
+					// Rescan lazily on next use: eager rescans per keystroke would pile up.
 					this.plugin.vocabIndex.invalidate();
-					void this.plugin.vocabIndex.get();
 					await this.plugin.saveSettings();
 				}),
 			);

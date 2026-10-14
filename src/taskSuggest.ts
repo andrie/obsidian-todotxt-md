@@ -7,7 +7,7 @@ import {
 	EditorSuggestTriggerInfo,
 	TFile,
 } from "obsidian";
-import { detectTrigger, type TriggerMatch } from "./triggers";
+import { detectTrigger, TypedSpaceTracker, type TriggerMatch } from "./triggers";
 import { suggestDateShortcuts, type DateShortcutSuggestion, type Clock } from "./dates";
 import {
 	suggestFields,
@@ -45,6 +45,8 @@ const PRIORITY_LETTERS = ["A", "B", "C", "D", "E"];
  */
 export class TaskFieldSuggest extends EditorSuggest<TaskSuggestion> {
 	private options: TaskSuggestOptions = { enabled: true, fieldMenu: true, maxItems: 10 };
+	/** The field menu opens only right after a space the user typed (see TypedSpaceTracker). */
+	private readonly typedSpace = new TypedSpaceTracker();
 
 	constructor(
 		app: App,
@@ -58,11 +60,15 @@ export class TaskFieldSuggest extends EditorSuggest<TaskSuggestion> {
 		this.options = { ...this.options, ...options };
 	}
 
+	private matchAt(lineNo: number, line: string, ch: number): TriggerMatch | null {
+		return detectTrigger(line, ch, {
+			fieldMenu: this.options.fieldMenu && this.typedSpace.isTyped(lineNo, line, ch),
+		});
+	}
+
 	private currentMatch(editor: Editor): TriggerMatch | null {
 		const cursor = editor.getCursor();
-		return detectTrigger(editor.getLine(cursor.line), cursor.ch, {
-			fieldMenu: this.options.fieldMenu,
-		});
+		return this.matchAt(cursor.line, editor.getLine(cursor.line), cursor.ch);
 	}
 
 	onTrigger(
@@ -70,10 +76,11 @@ export class TaskFieldSuggest extends EditorSuggest<TaskSuggestion> {
 		editor: Editor,
 		_file: TFile | null,
 	): EditorSuggestTriggerInfo | null {
+		const line = editor.getLine(cursor.line);
+		// Observe before any early return so the tracker always sees the previous line state.
+		this.typedSpace.observe(cursor.line, line, cursor.ch);
 		if (!this.options.enabled) return null;
-		const match = detectTrigger(editor.getLine(cursor.line), cursor.ch, {
-			fieldMenu: this.options.fieldMenu,
-		});
+		const match = this.matchAt(cursor.line, line, cursor.ch);
 		if (!match) return null;
 		return {
 			start: { line: cursor.line, ch: match.start },
@@ -107,7 +114,13 @@ export class TaskFieldSuggest extends EditorSuggest<TaskSuggestion> {
 			}
 			case "project":
 			case "at": {
-				const vocab = await this.vocab.get();
+				// Live editor text minus the line being typed replaces the open note's autosave-lagged
+				// cache entry, so the user's own half-typed token is never offered back.
+				const lines = context.editor.getValue().split("\n");
+				lines[context.editor.getCursor().line] = "";
+				const vocab = await this.vocab.get(
+					context.file ? { path: context.file.path, lines } : undefined,
+				);
 				const counts = match.kind === "project" ? vocab.project : vocab.at;
 				const prefix = match.kind === "project" ? "+" : "@";
 				return rankVocab(counts, match.query, max).map((item): TaskSuggestion => ({

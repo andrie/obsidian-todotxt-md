@@ -89,3 +89,40 @@ export function detectTrigger(
 
 	return null;
 }
+
+/** True when `line` is `previous` with exactly one space typed at offset `ch - 1`. */
+export function isSingleSpaceInsertion(previous: string, line: string, ch: number): boolean {
+	return (
+		ch >= 1 &&
+		line[ch - 1] === " " &&
+		line.length === previous.length + 1 &&
+		line.slice(0, ch - 1) + line.slice(ch) === previous
+	);
+}
+
+/**
+ * Remembers whether the cursor is sitting right after a space the user just *typed*. The field
+ * menu must only open then: opening it for any cursor position after a space would also fire
+ * after a selection that leaves a trailing space (e.g. a completed +Project), and on plain
+ * click/arrow navigation, where it would capture Up/Down/Enter. Feed it every onTrigger call;
+ * unchanged re-checks of the same line keep the state, so a repeated call doesn't close the menu.
+ */
+export class TypedSpaceTracker {
+	private last: { lineNo: number; text: string } | null = null;
+	private typed: { lineNo: number; text: string; ch: number } | null = null;
+
+	observe(lineNo: number, text: string, ch: number): void {
+		const last = this.last;
+		if (!last || last.lineNo !== lineNo) {
+			this.typed = null;
+		} else if (last.text !== text) {
+			this.typed = isSingleSpaceInsertion(last.text, text, ch) ? { lineNo, text, ch } : null;
+		}
+		this.last = { lineNo, text };
+	}
+
+	isTyped(lineNo: number, text: string, ch: number): boolean {
+		const typed = this.typed;
+		return !!typed && typed.lineNo === lineNo && typed.text === text && typed.ch === ch;
+	}
+}

@@ -17,6 +17,8 @@ export default [
 				HTMLElement: "readonly",
 				MouseEvent: "readonly",
 				KeyboardEvent: "readonly",
+				setTimeout: "readonly",
+				URL: "readonly",
 			},
 		},
 		plugins: {

@@ -51,19 +51,39 @@ export function mergeVocab(files: Iterable<FileVocab>): FileVocab {
 
 /**
  * Names whose lowercase form starts with `query`, most-used first (ties alphabetical), capped at
- * `limit`. An exact match used only once is dropped: that is almost certainly the token the user
- * is typing right now, which autosave has already written to disk.
+ * `limit`. Callers pass counts already adjusted for the open note (see adjustVocab), so the token
+ * being typed is not in them.
  */
 export function rankVocab(counts: CountMap, query: string, limit: number): VocabEntry[] {
 	const lowerQuery = query.toLowerCase();
 	return [...counts]
-		.filter(
-			([name, count]) =>
-				name.toLowerCase().startsWith(lowerQuery) && !(name === query && count === 1),
-		)
+		.filter(([name]) => name.toLowerCase().startsWith(lowerQuery))
 		.map(([name, count]) => ({ name, count }))
 		.sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
 		.slice(0, limit);
+}
+
+/**
+ * `base` with one file's cached contribution (`remove`, if any) swapped for its live content
+ * (`add`). Used for the open note: its on-disk cache lags the editor (autosave), so a half-typed
+ * "+Fin" would otherwise be offered back to the user. Returns new maps; `base` is not mutated.
+ */
+export function adjustVocab(
+	base: FileVocab,
+	remove: FileVocab | undefined,
+	add: FileVocab,
+): FileVocab {
+	const result = emptyVocab();
+	for (const kind of KINDS) {
+		for (const [name, count] of base[kind]) result[kind].set(name, count);
+		for (const [name, count] of remove?.[kind] ?? []) {
+			const remaining = (result[kind].get(name) ?? 0) - count;
+			if (remaining > 0) result[kind].set(name, remaining);
+			else result[kind].delete(name);
+		}
+		for (const [name, count] of add[kind]) bump(result[kind], name, count);
+	}
+	return result;
 }
 
 /** Same folder-scoping rule as the aggregated view's `scanFolders` setting; empty = whole vault. */

@@ -1,16 +1,30 @@
 import { App, Plugin, TAbstractFile, TFile, debounce } from "obsidian";
-import { extractFileVocab, mergeVocab, isInScanFolders, type FileVocab } from "./vocab";
+import {
+	adjustVocab,
+	extractFileVocab,
+	mergeVocab,
+	isInScanFolders,
+	type FileVocab,
+} from "./vocab";
+
+/** The note open in the editor: its live lines supersede its (autosave-lagged) cached entry. */
+export interface ActiveNote {
+	path: string;
+	lines: string[];
+}
 
 /**
  * Plugin-owned cache of the vault's +project / @place / #tag names. The aggregated view's own
  * scan is private to the view and only exists while it is open, so the inline popup cannot
  * reuse it. First use scans the vault (honouring `scanFolders`); afterwards vault events update
- * single files, debounced.
+ * single files, debounced. A scan that was in flight when `invalidate()` ran notices (via the
+ * generation counter) and stops, so it can never repopulate the cache with stale scope.
  */
 export class VocabIndex {
 	private readonly perFile = new Map<string, FileVocab>();
 	private merged: FileVocab | null = null;
 	private building: Promise<void> | null = null;
+	private generation = 0;
 	private readonly pending = new Set<string>();
 
 	private readonly flush = debounce(
@@ -40,27 +54,48 @@ export class VocabIndex {
 
 	/** Forget everything; the next get() rescans (used when `scanFolders` changes). */
 	invalidate(): void {
+		this.generation++;
 		this.perFile.clear();
 		this.merged = null;
 		this.building = null;
 	}
 
-	async get(): Promise<FileVocab> {
-		if (!this.building) this.building = this.build();
-		await this.building;
+	/**
+	 * The vault vocabulary. When `active` is given, that note's cached contribution is replaced
+	 * by its live lines (callers exclude the line being typed), so half-typed tokens that
+	 * autosave already wrote to disk are not offered back.
+	 */
+	async get(active?: ActiveNote): Promise<FileVocab> {
+		if (!this.building) this.building = this.build(this.generation);
+		const building = this.building;
+		try {
+			await building;
+		} catch {
+			// A failed scan must not be cached: let the next call retry.
+			if (this.building === building) this.building = null;
+		}
 		if (!this.merged) this.merged = mergeVocab(this.perFile.values());
-		return this.merged;
+		if (!active) return this.merged;
+		return adjustVocab(this.merged, this.perFile.get(active.path), extractFileVocab(active.lines));
 	}
 
-	private async build(): Promise<void> {
+	private async build(generation: number): Promise<void> {
 		const folders = this.getScanFolders();
 		for (const file of this.app.vault.getMarkdownFiles()) {
-			if (isInScanFolders(file.path, folders)) await this.index(file);
+			if (generation !== this.generation) return;
+			if (isInScanFolders(file.path, folders)) await this.index(file, generation);
 		}
 	}
 
-	private async index(file: TFile): Promise<void> {
-		const content = await this.app.vault.cachedRead(file);
+	/** Reads and indexes one file; an unreadable file is skipped rather than failing the scan. */
+	private async index(file: TFile, generation = this.generation): Promise<void> {
+		let content: string;
+		try {
+			content = await this.app.vault.cachedRead(file);
+		} catch {
+			return;
+		}
+		if (generation !== this.generation) return;
 		this.perFile.set(file.path, extractFileVocab(content.split("\n")));
 		this.merged = null;
 	}

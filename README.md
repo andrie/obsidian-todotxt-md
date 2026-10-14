@@ -46,8 +46,9 @@ legible as plain text with or without the plugin installed.
 
 - Priority: `(A)`-`(Z)`, immediately after the checkbox
 - Projects: `+ProjectName`
-- Contexts: `#tag`, using Obsidian-native tags rather than `todo.txt`'s `@context`, so the tag
-  pane and search work automatically
+- Contexts: `#tag` or `@context`, both accepted. `#tag` uses Obsidian-native tags, so the tag
+  pane and search work automatically; `@context` is `todo.txt`'s own spelling. Whichever you
+  type is preserved exactly
 - Dates: ISO `YYYY-MM-DD`. `due:` and `t:` (threshold/start date) use `todo.txt`'s own documented
   `key:value` extension convention
 

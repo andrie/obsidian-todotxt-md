@@ -36,8 +36,10 @@ Genius plugins.
       prio  creation  description   +project #ctx  due (ISO)
 ```
 
-- Priority `(A)`–`(Z)`; Projects `+Project`; **Contexts `#tag`** (deliberate deviation from
-  todo.txt `@context`); Dates ISO `YYYY-MM-DD` (`due:`, optional `t:` threshold).
+- Priority `(A)`–`(Z)`; Projects `+Project`; **Contexts `#tag` or `@context`, both first-class**
+  (`#tag` for Obsidian tag-pane indexing, `@context` for todo.txt-spec fidelity; each token's
+  original prefix is preserved on every rewrite, never canonicalized — see `DECISIONS.md`
+  2026-10-03); Dates ISO `YYYY-MM-DD` (`due:`, optional `t:` threshold).
 - Human date shortcuts (`tod`, `tom`, weekdays, `+3d`) are input-only, expanded at edit time,
   **never persisted**.
 

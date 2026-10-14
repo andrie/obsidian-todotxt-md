@@ -81,8 +81,18 @@ describe("field menu trigger", () => {
 		expect(at("- [ ] Call ", off)).toBeNull();
 	});
 
-	it("never fires on an empty body (so a fresh checkbox keeps Enter as newline)", () => {
-		expect(at("- [ ] ")).toBeNull();
+	it("fires on a new empty task so priority can be entered first", () => {
+		expect(at("- [ ] ")).toEqual({ kind: "field", start: 6, end: 6, query: "" });
+		expect(at("  - [ ] ")).toEqual({ kind: "field", start: 8, end: 8, query: "" });
+	});
+
+	it("does not fire on an empty body without the space, or with text after the cursor", () => {
+		expect(at("- [ ]")).toBeNull();
+		expect(detectTrigger("- [ ] foo", 6, on)).toBeNull();
+	});
+
+	it("does not fire on a new task when the setting is off", () => {
+		expect(at("- [ ] ", off)).toBeNull();
 	});
 
 	it("does not fire after a double space", () => {
@@ -159,5 +169,43 @@ describe("TypedSpaceTracker", () => {
 		const t = new TypedSpaceTracker();
 		t.observe(0, "- [ ] Call ", 11);
 		expect(t.isTyped(0, "- [ ] Call ", 11)).toBe(false);
+	});
+});
+
+describe("TypedSpaceTracker: new tasks", () => {
+	it("allows the menu on a task line just created by Enter (one more line, cursor at end)", () => {
+		const t = new TypedSpaceTracker();
+		t.observe(0, "- [ ] Call bank", 15, 3);
+		t.observe(1, "- [ ] ", 6, 4);
+		expect(t.isTyped(1, "- [ ] ", 6)).toBe(true);
+	});
+
+	it("allows the menu when the space after an empty checkbox is typed", () => {
+		const t = new TypedSpaceTracker();
+		t.observe(1, "- [ ]", 5, 4);
+		t.observe(1, "- [ ] ", 6, 4);
+		expect(t.isTyped(1, "- [ ] ", 6)).toBe(true);
+	});
+
+	it("does not allow the menu when the cursor merely moves onto an existing empty task", () => {
+		const t = new TypedSpaceTracker();
+		t.observe(0, "- [ ] Call bank", 15, 4);
+		t.observe(1, "- [ ] ", 6, 4);
+		expect(t.isTyped(1, "- [ ] ", 6)).toBe(false);
+	});
+
+	it("does not treat a mid-line Enter split as a new task start", () => {
+		const t = new TypedSpaceTracker();
+		t.observe(0, "- [ ] foobar", 9, 3);
+		t.observe(1, "- [ ] bar", 6, 4);
+		expect(t.isTyped(1, "- [ ] bar", 6)).toBe(false);
+	});
+
+	it("closes the new-task menu once the cursor moves or text is typed", () => {
+		const t = new TypedSpaceTracker();
+		t.observe(0, "- [ ] Call", 10, 3);
+		t.observe(1, "- [ ] ", 6, 4);
+		t.observe(1, "- [ ] x", 7, 4);
+		expect(t.isTyped(1, "- [ ] x", 7)).toBe(false);
 	});
 });

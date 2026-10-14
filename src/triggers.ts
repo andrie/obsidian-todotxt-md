@@ -78,13 +78,11 @@ export function detectTrigger(
 		};
 	}
 
-	if (
-		options.fieldMenu &&
-		body.length >= 2 &&
-		body.endsWith(" ") &&
-		!/\s/.test(body[body.length - 2])
-	) {
-		return { kind: "field", start: ch, end: ch, query: "" };
+	if (options.fieldMenu) {
+		const afterWord = body.length >= 2 && body.endsWith(" ") && !/\s/.test(body[body.length - 2]);
+		// A brand-new task: "- [ ] " with nothing after the cursor, so priority can come first.
+		const newTask = body === "" && ch === line.length && beforeCursor.endsWith(" ");
+		if (afterWord || newTask) return { kind: "field", start: ch, end: ch, query: "" };
 	}
 
 	return null;
@@ -108,17 +106,31 @@ export function isSingleSpaceInsertion(previous: string, line: string, ch: numbe
  * unchanged re-checks of the same line keep the state, so a repeated call doesn't close the menu.
  */
 export class TypedSpaceTracker {
-	private last: { lineNo: number; text: string } | null = null;
+	private last: { lineNo: number; text: string; lineCount?: number } | null = null;
 	private typed: { lineNo: number; text: string; ch: number } | null = null;
 
-	observe(lineNo: number, text: string, ch: number): void {
+	/**
+	 * `lineCount` (the document's line total) lets a task line created by Enter be told apart
+	 * from the cursor merely moving onto an existing line: Enter adds exactly one line and puts
+	 * the cursor at the end of the new one.
+	 */
+	observe(lineNo: number, text: string, ch: number, lineCount?: number): void {
 		const last = this.last;
-		if (!last || last.lineNo !== lineNo) {
+		const createdByEnter =
+			!!last &&
+			lineCount !== undefined &&
+			last.lineCount !== undefined &&
+			lineCount === last.lineCount + 1 &&
+			lineNo === last.lineNo + 1 &&
+			ch === text.length;
+		if (createdByEnter) {
+			this.typed = { lineNo, text, ch };
+		} else if (!last || last.lineNo !== lineNo) {
 			this.typed = null;
 		} else if (last.text !== text) {
 			this.typed = isSingleSpaceInsertion(last.text, text, ch) ? { lineNo, text, ch } : null;
 		}
-		this.last = { lineNo, text };
+		this.last = { lineNo, text, lineCount };
 	}
 
 	isTyped(lineNo: number, text: string, ch: number): boolean {

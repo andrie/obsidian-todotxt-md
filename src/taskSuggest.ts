@@ -78,7 +78,7 @@ export class TaskFieldSuggest extends EditorSuggest<TaskSuggestion> {
 	): EditorSuggestTriggerInfo | null {
 		const line = editor.getLine(cursor.line);
 		// Observe before any early return so the tracker always sees the previous line state.
-		this.typedSpace.observe(cursor.line, line, cursor.ch);
+		this.typedSpace.observe(cursor.line, line, cursor.ch, editor.lineCount());
 		if (!this.options.enabled) return null;
 		const match = this.matchAt(cursor.line, line, cursor.ch);
 		if (!match) return null;

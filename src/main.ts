@@ -204,9 +204,79 @@ class TodotxtMdSettingTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
+	/** Short user guide shown above the settings, so the plugin explains itself. */
+	private renderHelp(containerEl: HTMLElement): void {
+		new Setting(containerEl).setName("How to use").setHeading();
+		containerEl.createEl("p", {
+			text:
+				"Todo.txt MD adds todo.txt ergonomics to ordinary Markdown checkboxes. Your tasks " +
+				"stay plain text, with no emojis and nothing that needs the plugin to be read.",
+		});
+
+		const sections: Array<[string, string[]]> = [
+			[
+				"Task syntax",
+				[
+					"- [ ] (A) 2026-09-19 Call the bank +Finance @phone #calls due:2026-09-25",
+					"Priority (A)-(Z) comes first, then an optional created date. Add +projects, " +
+						"@contexts or #tags anywhere, and due: or t: (start) dates as ISO YYYY-MM-DD.",
+				],
+			],
+			[
+				"Commands (bind your own hotkeys in Settings > Hotkeys)",
+				[
+					"Increase / Decrease priority, Toggle done (adds the completion date), " +
+						"Expand date token (tod, tom, mon, +3d become ISO dates), Sort current " +
+						"checkbox block, and Open aggregated task view.",
+				],
+			],
+			[
+				"Typing help",
+				[
+					"After a space on a task line, a menu offers priority, dates, +project, " +
+						"@place and #tag. Typing + or @ lists names already used in your tasks.",
+				],
+			],
+			[
+				"Aggregated task view",
+				[
+					"Lists every task in your vault (or the scan folders below). Filter by due " +
+						"window, done state, or by clicking a +project / context pill. Tick a task " +
+						"to complete it, or click it to jump to the line.",
+				],
+			],
+			[
+				"Note-level settings (Properties)",
+				[
+					"todotxt-ignore (checkbox): leave this note out of the aggregated view, for " +
+						"example a shopping list.",
+					"todotxt-projects and todotxt-contexts (lists): give every task in the note " +
+						"these tags without typing them on each line. They show muted in the " +
+						"aggregated view and are never written into your task lines.",
+					"The nested form also works in source mode: todotxt: with ignore, projects " +
+						"and contexts beneath it.",
+				],
+			],
+		];
+
+		for (const [title, lines] of sections) {
+			containerEl.createEl("h4", { text: title });
+			for (const line of lines) {
+				if (line.startsWith("- [ ]")) {
+					containerEl.createEl("code", { text: line });
+				} else {
+					containerEl.createEl("p", { text: line, cls: "setting-item-description" });
+				}
+			}
+		}
+	}
+
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
+
+		this.renderHelp(containerEl);
+		new Setting(containerEl).setName("Settings").setHeading();
 
 		new Setting(containerEl)
 			.setName("Default priority")

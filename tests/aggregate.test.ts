@@ -2,9 +2,11 @@ import { describe, it, expect } from "vitest";
 import { parseTaskLine } from "../src/parse";
 import {
 	aggregateTasks,
+	inheritedFor,
 	matchesDueWindow,
 	DEFAULT_FILTER,
 	type AggregateFilter,
+	type InheritedTags,
 	type TaskRecord,
 } from "../src/aggregate";
 import type { Clock } from "../src/dates";
@@ -12,10 +14,15 @@ import type { Clock } from "../src/dates";
 // Fixed clock: Saturday 2026-09-19 (matches the convention in tests/dates.test.ts).
 const fixedClock: Clock = () => new Date(2026, 8, 19);
 
-function record(raw: string, filePath = "Work.md", line = 0): TaskRecord {
+function record(
+	raw: string,
+	filePath = "Work.md",
+	line = 0,
+	inherited: InheritedTags = { projects: [], contexts: [] },
+): TaskRecord {
 	const task = parseTaskLine(raw);
 	if (!task) throw new Error("fixture line did not parse");
-	return { task, filePath, line };
+	return { task, filePath, line, inherited };
 }
 
 describe("matchesDueWindow", () => {
@@ -99,5 +106,63 @@ describe("aggregateTasks", () => {
 	it("sorts results by priority then due date ascending", () => {
 		const result = aggregateTasks(records, DEFAULT_FILTER, fixedClock);
 		expect(result.map((r) => r.task.priority)).toEqual(["A", "B", null]);
+	});
+});
+
+describe("inheritedFor", () => {
+	const meta = {
+		projects: ["Home", "Garden"],
+		contexts: [
+			{ name: "place", prefix: "@" as const },
+			{ name: "errand", prefix: "#" as const },
+		],
+	};
+
+	it("returns all note tags for a task with none typed", () => {
+		const task = parseTaskLine("- [ ] water plants")!;
+		expect(inheritedFor(task, meta)).toEqual(meta);
+	});
+
+	it("omits projects the task already typed", () => {
+		const task = parseTaskLine("- [ ] water plants +Garden")!;
+		expect(inheritedFor(task, meta).projects).toEqual(["Home"]);
+	});
+
+	it("omits a context the task typed under either prefix", () => {
+		const task = parseTaskLine("- [ ] buy milk #place @errand")!;
+		expect(inheritedFor(task, meta).contexts).toEqual([]);
+	});
+});
+
+describe("aggregateTasks with inherited tags", () => {
+	const inherited: InheritedTags = {
+		projects: ["Home"],
+		contexts: [{ name: "place", prefix: "@" }],
+	};
+
+	it("project filter matches an inherited project", () => {
+		const records = [record("- [ ] a", "n.md", 0, inherited), record("- [ ] b")];
+		const result = aggregateTasks(records, { ...DEFAULT_FILTER, projects: ["Home"] }, fixedClock);
+		expect(result.map((r) => r.task.description)).toEqual(["a"]);
+	});
+
+	it("context filter matches an inherited context by name", () => {
+		const records = [record("- [ ] a", "n.md", 0, inherited), record("- [ ] b")];
+		const result = aggregateTasks(records, { ...DEFAULT_FILTER, contexts: ["place"] }, fixedClock);
+		expect(result.map((r) => r.task.description)).toEqual(["a"]);
+	});
+
+	it("AND semantics span typed and inherited tags", () => {
+		const records = [
+			record("- [ ] a +Work", "n.md", 0, inherited),
+			record("- [ ] b +Work"),
+			record("- [ ] c", "n.md", 2, inherited),
+		];
+		const result = aggregateTasks(
+			records,
+			{ ...DEFAULT_FILTER, projects: ["Home", "Work"] },
+			fixedClock,
+		);
+		expect(result.map((r) => r.task.description)).toEqual(["a"]);
 	});
 });

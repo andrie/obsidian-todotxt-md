@@ -1,6 +1,16 @@
-import type { Task } from "./parse";
+import type { ContextToken, Task } from "./parse";
 import { compareTasks } from "./sort";
 import type { Clock } from "./dates";
+import type { NoteMeta } from "./noteMeta";
+
+/**
+ * Tags a note's front matter gives its tasks. Kept off `Task` on purpose: they are virtual, so
+ * write-back (which re-serialises the parsed line) can never persist them.
+ */
+export interface InheritedTags {
+	projects: string[];
+	contexts: ContextToken[];
+}
 
 /**
  * A parsed task plus its source location, produced by view.ts's vault scan. Pure data — no
@@ -13,18 +23,34 @@ export interface TaskRecord {
 	filePath: string;
 	/** 0-indexed line number, matching Editor.setCursor's line convention. */
 	line: number;
+	inherited: InheritedTags;
+}
+
+/**
+ * The note's tags minus any the task already typed. Contexts match by name regardless of prefix
+ * (filtering is prefix-blind), so a typed `#home` suppresses an inherited `@home`.
+ */
+export function inheritedFor(
+	task: Task,
+	meta: Pick<NoteMeta, "projects" | "contexts">,
+): InheritedTags {
+	return {
+		projects: meta.projects.filter((p) => !task.projects.includes(p)),
+		contexts: meta.contexts.filter((c) => !task.contexts.some((t) => t.name === c.name)),
+	};
 }
 
 export type DueWindow = "all" | "overdue" | "today" | "this-week" | "none";
 
 export interface AggregateFilter {
 	/**
-	 * AND semantics: task must have ALL listed contexts. Bare names only, prefix-blind — a
+	 * AND semantics: task must have ALL listed contexts, typed or inherited from the note's front
+	 * matter. Bare names only, prefix-blind — a
 	 * filter entry matches a task's context regardless of whether that context was typed as
 	 * `@name` or `#name` (see ContextToken in parse.ts).
 	 */
 	contexts: string[];
-	/** AND semantics: task must have ALL listed projects. */
+	/** AND semantics: task must have ALL listed projects, typed or inherited. */
 	projects: string[];
 	dueWindow: DueWindow;
 	includeDone: boolean;
@@ -78,10 +104,12 @@ export function aggregateTasks(
 	filter: AggregateFilter,
 	clock: Clock,
 ): TaskRecord[] {
-	const filtered = records.filter(({ task }) => {
+	const filtered = records.filter(({ task, inherited }) => {
 		if (!filter.includeDone && task.done) return false;
-		if (filter.contexts.some((c) => !task.contexts.some((ctx) => ctx.name === c))) return false;
-		if (filter.projects.some((p) => !task.projects.includes(p))) return false;
+		const contextNames = [...task.contexts, ...inherited.contexts].map((c) => c.name);
+		if (filter.contexts.some((c) => !contextNames.includes(c))) return false;
+		const projects = [...task.projects, ...inherited.projects];
+		if (filter.projects.some((p) => !projects.includes(p))) return false;
 		if (!matchesDueWindow(task.due, filter.dueWindow, clock)) return false;
 		return true;
 	});

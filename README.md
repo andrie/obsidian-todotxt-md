@@ -89,6 +89,11 @@ optional: `[Kitchen-reno]`, `["+Kitchen-reno"]` and a single string all work, an
 without a sigil gets `@` (write `"#home"` to show it as a tag). A tag already typed on the
 line is not shown twice.
 
+Obsidian's Properties editor cannot edit the nested `todotxt:` map, so the same three settings
+are also available as flat properties you can add from the Properties panel: `todotxt-ignore`
+(checkbox), `todotxt-projects` (list) and `todotxt-contexts` (list). Both spellings work, and
+if a note has both they combine.
+
 These tags are virtual. They are applied when the view is built and never written into your task
 lines, so the plain text stays exactly what you typed.
 

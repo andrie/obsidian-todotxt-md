@@ -26,6 +26,10 @@ explicit `#` is kept (consistent with the 2026-10-03 entry).
 - **Writing the tags into task lines.** Breaks the plain-text rule, rewrites lines the user never
   edited when a task is ticked in the view, and makes removing a tag from the front matter a
   no-op.
+- **Nested key only.** Shipped first, then amended the same day: Obsidian's Properties editor
+  cannot create or edit a nested map, and editing source mode was too obscure. The flat keys
+  `todotxt-ignore` / `todotxt-projects` / `todotxt-contexts` are now accepted too, and combine
+  with the nested form (ignore if either says so; lists unioned).
 - **A flat `todotxt: +project, @place` value.** An unquoted `@` cannot start a YAML value, so it
   fails to parse.
 - **Reading `metadataCache`.** It can lag behind a `modify` event, so a just-edited `ignore` or

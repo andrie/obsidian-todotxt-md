@@ -101,6 +101,54 @@ describe("parseNoteMeta", () => {
 	});
 });
 
+describe("parseNoteMeta flat keys (Properties editor friendly)", () => {
+	it("reads todotxt-ignore, todotxt-projects and todotxt-contexts", () => {
+		const meta = parseNoteMeta({
+			"todotxt-ignore": true,
+			"todotxt-projects": ["alpha", "+beta"],
+			"todotxt-contexts": ["home", "#errand"],
+		});
+		expect(meta).toEqual({
+			ignore: true,
+			projects: ["alpha", "beta"],
+			contexts: [
+				{ name: "home", prefix: "@" },
+				{ name: "errand", prefix: "#" },
+			],
+		});
+	});
+
+	it("accepts the string 'true' and a single string, like the nested form", () => {
+		const meta = parseNoteMeta({ "todotxt-ignore": "True", "todotxt-projects": "+solo" });
+		expect(meta.ignore).toBe(true);
+		expect(meta.projects).toEqual(["solo"]);
+	});
+
+	it("combines flat and nested: ignore if either says so, lists unioned without duplicates", () => {
+		const meta = parseNoteMeta({
+			todotxt: { projects: ["a", "b"], contexts: ["x"] },
+			"todotxt-ignore": true,
+			"todotxt-projects": ["b", "c"],
+			"todotxt-contexts": ["@x", "y"],
+		});
+		expect(meta.ignore).toBe(true);
+		expect(meta.projects).toEqual(["a", "b", "c"]);
+		expect(meta.contexts).toEqual([
+			{ name: "x", prefix: "@" },
+			{ name: "y", prefix: "@" },
+		]);
+	});
+
+	it("flat keys work when the nested todotxt key is absent or not a map", () => {
+		expect(parseNoteMeta({ todotxt: "x", "todotxt-ignore": true }).ignore).toBe(true);
+	});
+
+	it("a false flat ignore does not cancel a true nested one", () => {
+		const meta = parseNoteMeta({ todotxt: { ignore: true }, "todotxt-ignore": false });
+		expect(meta.ignore).toBe(true);
+	});
+});
+
 describe("readNoteMeta", () => {
 	const fakeYaml = (text: string): unknown => JSON.parse(text);
 

@@ -1,7 +1,7 @@
 /**
- * Note-level metadata from the `todotxt:` front matter key (see the 2026-10-15 spec). Pure: the
- * YAML parser is injected, so this runs in plain Node. This module handles front matter, not task
- * syntax; the task grammar stays in parse.ts.
+ * Note-level metadata from the `todotxt:` front matter key, or the flat `todotxt-*` keys (see
+ * the 2026-10-15 spec). Pure: the YAML parser is injected, so this runs in plain Node. This
+ * module handles front matter, not task syntax; the task grammar stays in parse.ts.
  */
 import type { ContextToken } from "./parse";
 
@@ -49,22 +49,29 @@ function isValidName(name: string): boolean {
 	return name.length > 0 && !/\s/.test(name);
 }
 
+function isTrue(value: unknown): boolean {
+	return value === true || (typeof value === "string" && value.trim().toLowerCase() === "true");
+}
+
+/**
+ * Reads both spellings: the nested `todotxt:` map and the flat `todotxt-ignore` /
+ * `todotxt-projects` / `todotxt-contexts` keys, which Obsidian's Properties editor can edit
+ * (it cannot edit nested maps). When both appear they combine: ignore if either says so, lists
+ * unioned.
+ */
 export function parseNoteMeta(frontmatter: unknown): NoteMeta {
 	const meta = emptyMeta();
 	if (!isRecord(frontmatter)) return meta;
-	const section = frontmatter.todotxt;
-	if (!isRecord(section)) return meta;
+	const nested = isRecord(frontmatter.todotxt) ? frontmatter.todotxt : {};
 
-	const ignore = section.ignore;
-	meta.ignore =
-		ignore === true || (typeof ignore === "string" && ignore.trim().toLowerCase() === "true");
+	meta.ignore = isTrue(nested.ignore) || isTrue(frontmatter["todotxt-ignore"]);
 
-	for (const raw of toNames(section.projects)) {
+	for (const raw of [...toNames(nested.projects), ...toNames(frontmatter["todotxt-projects"])]) {
 		const name = raw.startsWith("+") ? raw.slice(1) : raw;
 		if (isValidName(name) && !meta.projects.includes(name)) meta.projects.push(name);
 	}
 
-	for (const raw of toNames(section.contexts)) {
+	for (const raw of [...toNames(nested.contexts), ...toNames(frontmatter["todotxt-contexts"])]) {
 		const explicit = raw.startsWith("@") || raw.startsWith("#");
 		const prefix = raw.startsWith("#") ? "#" : "@";
 		const name = explicit ? raw.slice(1) : raw;

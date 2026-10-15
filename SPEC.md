@@ -327,7 +327,9 @@ Commands (all hotkey-bindable, all operating on the cursor's current line/block)
    - **Note-level metadata** (2026-10-15): a nested `todotxt:` key in a note's front matter —
      `ignore: true` excludes the note from the view and from the inline-suggestion vocabulary;
      `projects` / `contexts` give every task in the note inherited tags (sigils optional, bare
-     contexts get `@`). Inherited tags are virtual: kept on `TaskRecord`, never on `Task`, never
+     contexts get `@`). The flat keys `todotxt-ignore` / `todotxt-projects` / `todotxt-contexts`
+     are equivalent, because Obsidian's Properties editor cannot edit nested maps; if both forms
+     are present they combine. Inherited tags are virtual: kept on `TaskRecord`, never on `Task`, never
      written to a task line; shown muted; counted by filters; deduplicated against typed tags.
      Parsing lives in the pure `src/noteMeta.ts`. See
      `docs/superpowers/specs/2026-10-15-note-level-tags-and-ignore-design.md`.

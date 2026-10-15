@@ -1,7 +1,7 @@
 # Note-level tags and ignore — Design
 
 **Date:** 2026-10-15
-**Status:** Draft, awaiting review
+**Status:** Implemented
 
 ## Goal
 
@@ -30,6 +30,14 @@ todotxt:
 - `projects` and `contexts` accept a list or a single string.
 - The names `projects` and `contexts` follow todo.txt vocabulary and avoid clashing with Obsidian's own
   `tags:` property, which means `#tags`.
+
+### Flat keys (added after first use)
+
+Obsidian's Properties editor cannot create or edit a nested map, so the same settings are also
+accepted as flat properties: `todotxt-ignore` (checkbox), `todotxt-projects` (list),
+`todotxt-contexts` (list). They follow the same rules below. If a note has both forms they
+combine: `ignore` is true if either says so, and the project and context lists are unioned
+without duplicates.
 
 ### Parsing rules (`parseNoteMeta`)
 

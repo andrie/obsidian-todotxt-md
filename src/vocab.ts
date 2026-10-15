@@ -5,6 +5,7 @@
  * owns the grammar).
  */
 import { parseTaskLine } from "./parse";
+import type { NoteMeta } from "./noteMeta";
 
 export type VocabKind = "project" | "at" | "hash";
 export type CountMap = Map<string, number>;
@@ -35,6 +36,20 @@ export function extractFileVocab(lines: string[]): FileVocab {
 		for (const context of task.contexts) {
 			bump(context.prefix === "@" ? vocab.at : vocab.hash, context.name);
 		}
+	}
+	return vocab;
+}
+
+/**
+ * A note's vocabulary: nothing when the note is ignored, otherwise its tasks' names plus the
+ * names its front matter declares (so `+Home` is suggestable before any task line uses it).
+ */
+export function extractNoteVocab(meta: NoteMeta, lines: string[]): FileVocab {
+	if (meta.ignore) return emptyVocab();
+	const vocab = extractFileVocab(lines);
+	for (const project of meta.projects) bump(vocab.project, project);
+	for (const context of meta.contexts) {
+		bump(context.prefix === "@" ? vocab.at : vocab.hash, context.name);
 	}
 	return vocab;
 }

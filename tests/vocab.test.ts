@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
+import type { NoteMeta } from "../src/noteMeta";
 import {
 	extractFileVocab,
+	extractNoteVocab,
 	mergeVocab,
 	rankVocab,
 	isInScanFolders,
@@ -110,5 +112,38 @@ describe("isInScanFolders", () => {
 		expect(isInScanFolders("Work/Note.md", ["Work"])).toBe(true);
 		expect(isInScanFolders("Work2/Note.md", ["Work"])).toBe(false);
 		expect(isInScanFolders("Other/Note.md", ["Work"])).toBe(false);
+	});
+});
+
+describe("extractNoteVocab", () => {
+	const lines = ["- [ ] buy milk +Shop @store", "not a task +Ignored"];
+
+	it("is empty for an ignored note", () => {
+		const meta: NoteMeta = { ignore: true, projects: ["Home"], contexts: [] };
+		const vocab = extractNoteVocab(meta, lines);
+		expect(vocab.project.size).toBe(0);
+		expect(vocab.at.size).toBe(0);
+		expect(vocab.hash.size).toBe(0);
+	});
+
+	it("matches extractFileVocab when the note declares nothing", () => {
+		const meta: NoteMeta = { ignore: false, projects: [], contexts: [] };
+		expect(extractNoteVocab(meta, lines)).toEqual(extractFileVocab(lines));
+	});
+
+	it("adds inherited names, summed with typed uses", () => {
+		const meta: NoteMeta = {
+			ignore: false,
+			projects: ["Shop", "Home"],
+			contexts: [
+				{ name: "store", prefix: "@" },
+				{ name: "errand", prefix: "#" },
+			],
+		};
+		const vocab = extractNoteVocab(meta, lines);
+		expect(vocab.project.get("Shop")).toBe(2);
+		expect(vocab.project.get("Home")).toBe(1);
+		expect(vocab.at.get("store")).toBe(2);
+		expect(vocab.hash.get("errand")).toBe(1);
 	});
 });

@@ -1,8 +1,15 @@
-import { ItemView, WorkspaceLeaf, TFile, debounce, type Editor } from "obsidian";
+import { ItemView, WorkspaceLeaf, TFile, debounce, parseYaml, type Editor } from "obsidian";
 import type TodotxtMdPlugin from "./main";
 import { parseTaskLine, serializeTask } from "./parse";
 import { toggleDone } from "./editor";
-import { aggregateTasks, DEFAULT_FILTER, type AggregateFilter, type TaskRecord } from "./aggregate";
+import {
+	aggregateTasks,
+	inheritedFor,
+	DEFAULT_FILTER,
+	type AggregateFilter,
+	type TaskRecord,
+} from "./aggregate";
+import { readNoteMeta } from "./noteMeta";
 import type { Clock } from "./dates";
 import { nameToColor } from "./tokenColors";
 
@@ -76,10 +83,19 @@ export class AggregatedTaskView extends ItemView {
 		const records: TaskRecord[] = [];
 		for (const file of scopedFiles) {
 			const content = await this.app.vault.cachedRead(file);
+			const meta = readNoteMeta(content, parseYaml);
+			if (meta.ignore) continue;
 			const lines = content.split("\n");
 			lines.forEach((lineText, index) => {
 				const task = parseTaskLine(lineText);
-				if (task) records.push({ task, filePath: file.path, line: index });
+				if (task) {
+					records.push({
+						task,
+						filePath: file.path,
+						line: index,
+						inherited: inheritedFor(task, meta),
+					});
+				}
 			});
 		}
 		return records;
@@ -138,25 +154,36 @@ export class AggregatedTaskView extends ItemView {
 			cls: "todotxt-md-description",
 		});
 
+		const projects = [
+			...task.projects.map((name) => ({ name, inherited: false })),
+			...record.inherited.projects.map((name) => ({ name, inherited: true })),
+		];
+		const contexts = [
+			...task.contexts.map((c) => ({ ...c, inherited: false })),
+			...record.inherited.contexts.map((c) => ({ ...c, inherited: true })),
+		];
+
 		if (this.plugin.settings.enableAggregatedViewPills) {
-			for (const project of task.projects) {
+			for (const project of projects) {
 				container.appendText(" ");
 				const pill = container.createSpan({
-					text: `+${project}`,
+					text: `+${project.name}`,
 					cls: "todotxt-md-pill todotxt-md-pill-project",
 				});
-				pill.style.backgroundColor = nameToColor(project);
+				if (project.inherited) pill.addClass("todotxt-md-pill-inherited");
+				pill.style.backgroundColor = nameToColor(project.name);
 				pill.addEventListener("click", (evt) => {
 					evt.stopPropagation();
-					this.toggleProjectFilter(project);
+					this.toggleProjectFilter(project.name);
 				});
 			}
-			for (const context of task.contexts) {
+			for (const context of contexts) {
 				container.appendText(" ");
 				const pill = container.createSpan({
 					text: `${context.prefix}${context.name}`,
 					cls: "todotxt-md-pill todotxt-md-pill-context",
 				});
+				if (context.inherited) pill.addClass("todotxt-md-pill-inherited");
 				pill.style.backgroundColor = nameToColor(context.name);
 				pill.addEventListener("click", (evt) => {
 					evt.stopPropagation();
@@ -164,12 +191,8 @@ export class AggregatedTaskView extends ItemView {
 				});
 			}
 		} else {
-			for (const project of task.projects) {
-				container.appendText(` +${project}`);
-			}
-			for (const context of task.contexts) {
-				container.appendText(` ${context.prefix}${context.name}`);
-			}
+			for (const project of projects) container.appendText(` +${project.name}`);
+			for (const context of contexts) container.appendText(` ${context.prefix}${context.name}`);
 		}
 
 		if (task.due) {

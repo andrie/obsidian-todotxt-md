@@ -104,6 +104,11 @@ settings:
 	color: #ffffff;
 }
 
+/* A tag the note's front matter gives the task, not one typed on the line. */
+.todotxt-md-pill-inherited {
+	opacity: 0.55;
+}
+
 .todotxt-md-pill-priority {
 	font-weight: 700;
 }

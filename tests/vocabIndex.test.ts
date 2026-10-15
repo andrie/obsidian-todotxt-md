@@ -101,4 +101,39 @@ describe("VocabIndex", () => {
 		expect(vocab.project.has("Finan")).toBe(false);
 		expect(vocab.project.get("Finance")).toBe(1);
 	});
+
+	it("an ignored note contributes no names", async () => {
+		const app = fakeApp({
+			files: {
+				"shop.md": "---\ntodotxt:\n  ignore: true\n---\n- [ ] milk +Groceries",
+				"a.md": "- [ ] x +Work1",
+			},
+		});
+		const index = new VocabIndex(app, () => []);
+		const vocab = await index.get();
+		expect(vocab.project.has("Groceries")).toBe(false);
+		expect(vocab.project.has("Work1")).toBe(true);
+	});
+
+	it("a note's declared projects and contexts become vocabulary", async () => {
+		const app = fakeApp({
+			files: {
+				"proj.md": "---\ntodotxt:\n  projects: [Home]\n  contexts: [garage]\n---\n- [ ] sweep",
+			},
+		});
+		const index = new VocabIndex(app, () => []);
+		const vocab = await index.get();
+		expect(vocab.project.get("Home")).toBe(1);
+		expect(vocab.at.get("garage")).toBe(1);
+	});
+
+	it("the open note's live front matter replaces its cached entry", async () => {
+		const app = fakeApp({ files: { "n.md": "- [ ] x +Cached" } });
+		const index = new VocabIndex(app, () => []);
+		const vocab = await index.get({
+			path: "n.md",
+			lines: ["---", "todotxt:", "  ignore: true", "---", "- [ ] x +Cached"],
+		});
+		expect(vocab.project.has("Cached")).toBe(false);
+	});
 });

@@ -20,7 +20,7 @@ function emptyMeta(): NoteMeta {
 
 /** The YAML text between the leading `---` lines, or null when the note has no closed block. */
 export function splitFrontmatter(content: string): string | null {
-	const lines = content.replace(/^﻿/, "").split(/\r?\n/);
+	const lines = (content.charCodeAt(0) === 0xfeff ? content.slice(1) : content).split(/\r?\n/);
 	if (lines[0]?.trimEnd() !== "---") return null;
 	for (let i = 1; i < lines.length; i++) {
 		const line = lines[i].trimEnd();

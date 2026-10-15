@@ -1,11 +1,12 @@
-import { App, Plugin, TAbstractFile, TFile, debounce } from "obsidian";
+import { App, Plugin, TAbstractFile, TFile, debounce, parseYaml } from "obsidian";
 import {
 	adjustVocab,
-	extractFileVocab,
+	extractNoteVocab,
 	mergeVocab,
 	isInScanFolders,
 	type FileVocab,
 } from "./vocab";
+import { readNoteMeta } from "./noteMeta";
 
 /** The note open in the editor: its live lines supersede its (autosave-lagged) cached entry. */
 export interface ActiveNote {
@@ -76,7 +77,8 @@ export class VocabIndex {
 		}
 		if (!this.merged) this.merged = mergeVocab(this.perFile.values());
 		if (!active) return this.merged;
-		return adjustVocab(this.merged, this.perFile.get(active.path), extractFileVocab(active.lines));
+		const live = extractNoteVocab(readNoteMeta(active.lines.join("\n"), parseYaml), active.lines);
+		return adjustVocab(this.merged, this.perFile.get(active.path), live);
 	}
 
 	private async build(generation: number): Promise<void> {
@@ -96,7 +98,8 @@ export class VocabIndex {
 			return;
 		}
 		if (generation !== this.generation) return;
-		this.perFile.set(file.path, extractFileVocab(content.split("\n")));
+		const lines = content.split("\n");
+		this.perFile.set(file.path, extractNoteVocab(readNoteMeta(content, parseYaml), lines));
 		this.merged = null;
 	}
 

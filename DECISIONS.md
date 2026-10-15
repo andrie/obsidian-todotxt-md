@@ -6,6 +6,40 @@
 
 ---
 
+## 2026-10-15 — Note-level tags are virtual: inherited at read time, never persisted
+
+### Context
+
+A note's tasks often share a project or place, and typing `+Project @place` on every line is the
+clutter this plugin exists to avoid. Task Genius offers per-note inheritance. Notes such as
+shopping lists also need to stay out of the aggregated view entirely.
+
+### Decision
+
+A nested `todotxt:` front matter key (`ignore`, `projects`, `contexts`) is read when the view is
+built. Inherited tags live on `TaskRecord`, not `Task`, so write-back (which re-serialises the
+parsed line) cannot persist them. `ignore` wins over everything. Bare contexts get `@`; an
+explicit `#` is kept (consistent with the 2026-10-03 entry).
+
+### Alternatives rejected
+
+- **Writing the tags into task lines.** Breaks the plain-text rule, rewrites lines the user never
+  edited when a task is ticked in the view, and makes removing a tag from the front matter a
+  no-op.
+- **A flat `todotxt: +project, @place` value.** An unquoted `@` cannot start a YAML value, so it
+  fails to parse.
+- **Reading `metadataCache`.** It can lag behind a `modify` event, so a just-edited `ignore` or
+  tag list would show stale results. Front matter is parsed from the content already read.
+- **Folder / glob exclusion.** Deferred; front matter is the per-page tool.
+
+### Costs / trade-offs accepted
+
+- Inherited tags exist only in the plugin's views. A task read in another tool does not carry
+  them, which is the price of never rewriting the lines.
+- Per-task opt-out and inheriting other fields (priority, due date) are not offered.
+
+---
+
 ## 2026-10-03 — Partial reversal: accept `@context` alongside `#tag`, prefix preserved per-token
 
 ### Context

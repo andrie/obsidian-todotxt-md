@@ -39,6 +39,8 @@ legible as plain text with or without the plugin installed.
 - The aggregated task view lists every task across your vault, or a configured set of folders,
   filterable by due-date window and done state. Complete or uncomplete a task directly from the
   list, or click it to jump to the source line
+- Note-level settings: a note's front matter can leave it out of the aggregated view, or give
+  every task in it shared `+project` and `@place` tags (see "Note-level settings")
 
 ## Task syntax
 
@@ -57,6 +59,38 @@ legible as plain text with or without the plugin installed.
 
 Your tasks stay fully legible, editable, and portable as plain Markdown, with or without this
 plugin installed.
+
+## Note-level settings
+
+Add a `todotxt:` property to a note's front matter to control how its tasks appear in the
+aggregated view.
+
+```yaml
+---
+todotxt:
+  ignore: true
+---
+```
+
+Use `ignore: true` for notes such as shopping lists. The note's tasks are left out of the
+aggregated view, and its `+project` / `@place` names are left out of the inline suggestions.
+
+```yaml
+---
+todotxt:
+  projects: [Kitchen-reno]
+  contexts: [home]
+---
+```
+
+Every task in this note now counts as `+Kitchen-reno` and `@home` without typing them on each
+line. They show muted in the aggregated view and work with its filters and pills. Sigils are
+optional: `[Kitchen-reno]`, `["+Kitchen-reno"]` and a single string all work, and a context
+without a sigil gets `@` (write `"#home"` to show it as a tag). A tag already typed on the
+line is not shown twice.
+
+These tags are virtual. They are applied when the view is built and never written into your task
+lines, so the plain text stays exactly what you typed.
 
 ## Installation
 

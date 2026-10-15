@@ -41,7 +41,9 @@ todotxt:
 | project `"+x"` or `"x"` | project `x` |
 | context `"x"` or `"@x"` | `{ name: "x", prefix: "@" }` |
 | context `"#x"` | `{ name: "x", prefix: "#" }` |
-| empty, non-string or whitespace-containing entries | dropped silently |
+| YAML number (`projects: [2026]`) | name `"2026"` |
+| empty, whitespace-containing or non-scalar entries | dropped silently |
+| unparseable YAML | empty default (not ignored) |
 
 A bare context gets `@`, matching todo.txt. An explicit `#` is preserved, as on task lines
 (`DECISIONS.md`, 2026-10-03). Names containing whitespace are dropped because `parse.ts` splits tokens

@@ -1,7 +1,7 @@
 {
 	"id": "todotxt-md",
 	"name": "Todo.txt MD",
-	"version": "0.4.0",
+	"version": "0.4.1",
 	"minAppVersion": "1.4.0",
 	"description": "Clean, keyboard-driven, emoji-free todo.txt ergonomics over Markdown checkboxes.",
 	"author": "Andrie de Vries",

@@ -9,7 +9,7 @@ import {
 	startIfEnteredProgress,
 } from "./editor";
 import type { EditorView } from "@codemirror/view";
-import { parseTaskLine } from "./parse";
+import { parseTaskLine, statusMark } from "./parse";
 import { TaskFieldSuggest } from "./taskSuggest";
 import { VocabIndex } from "./vocabIndex";
 import { AggregatedTaskView, TASK_VIEW_TYPE } from "./view";
@@ -172,9 +172,21 @@ export default class TodotxtMdPlugin extends Plugin {
 				const cm = (editor as unknown as { cm?: EditorView } | undefined)?.cm;
 				if (!editor || !cm || !cm.dom.contains(target)) return;
 				const lineNumber = editor.offsetToPos(cm.posAtDOM(target)).line;
-				if (!cycleStatusAtLine(editor, lineNumber, systemClock)) return;
+				const status = cycleStatusAtLine(editor, lineNumber, systemClock);
+				if (status === null) return;
 				evt.preventDefault();
 				evt.stopPropagation();
+				// Obsidian can reuse this checkbox element when the new status is also "checked"
+				// (in progress -> done), leaving a stale data-task that our CSS keys on. The browser
+				// also reverts a cancelled checkbox click after dispatch, so sync once that's done.
+				const mark = statusMark(status);
+				setTimeout(() => {
+					if (!target.isConnected) return;
+					target.checked = status !== "open";
+					for (const el of [target, target.closest(".HyperMD-task-line"), target.closest("li")]) {
+						if (el?.hasAttribute("data-task")) el.setAttribute("data-task", mark);
+					}
+				}, 0);
 			},
 			true,
 		);

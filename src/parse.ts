@@ -38,6 +38,11 @@ const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const PRIORITY_RE = /^\(([A-Za-z])\)\s*/;
 const LEADING_DATE_RE = /^(\d{4}-\d{2}-\d{2})\s+/;
 
+/** The checkbox character for a status: " ", "/" or "x". */
+export function statusMark(status: TaskStatus): string {
+	return status === "done" ? "x" : status === "progress" ? "/" : " ";
+}
+
 function statusFromMark(mark: string): TaskStatus {
 	if (mark === "/") return "progress";
 	return mark === "x" || mark === "X" ? "done" : "open";
@@ -331,7 +336,7 @@ export function detectMalformedPriority(line: string): TokenSpan | null {
  * reproduced there, satisfying round-trip fidelity for messy input.
  */
 export function serializeTask(task: Task): string {
-	const mark = task.status === "done" ? "x" : task.status === "progress" ? "/" : " ";
+	const mark = statusMark(task.status);
 	const parts: string[] = [`${task.indent}- [${mark}]`];
 
 	if (task.status === "done" && task.completionDate) {

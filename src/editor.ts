@@ -1,5 +1,5 @@
 import type { Editor, EditorPosition } from "obsidian";
-import { parseTaskLine, serializeTask, type Task } from "./parse";
+import { parseTaskLine, serializeTask, type Task, type TaskStatus } from "./parse";
 import { bumpPriority } from "./priority";
 import { expandDateToken, type Clock } from "./dates";
 import { defaultComparator } from "./sort";
@@ -192,14 +192,19 @@ export function createTaskAtCursor(editor: Editor, clock: Clock): void {
 }
 
 /**
- * Cycles status on a specific line (e.g. the one whose checkbox was clicked). Returns false
- * if that line isn't a task. The cursor is left alone.
+ * Cycles status on a specific line (e.g. the one whose checkbox was clicked). Returns the new
+ * status, or null if that line isn't a task. The cursor is left alone.
  */
-export function cycleStatusAtLine(editor: Editor, lineNumber: number, clock: Clock): boolean {
+export function cycleStatusAtLine(
+	editor: Editor,
+	lineNumber: number,
+	clock: Clock,
+): TaskStatus | null {
 	const task = parseTaskLine(editor.getLine(lineNumber));
-	if (!task) return false;
-	replaceLine(editor, lineNumber, serializeTask(cycleStatus(task, clock)));
-	return true;
+	if (!task) return null;
+	const updated = cycleStatus(task, clock);
+	replaceLine(editor, lineNumber, serializeTask(updated));
+	return updated.status;
 }
 
 /**

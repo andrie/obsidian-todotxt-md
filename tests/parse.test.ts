@@ -5,6 +5,7 @@ import {
 	parseTaskLineWithSpans,
 	detectMalformedPriority,
 	checkboxBodyStart,
+	statusMark,
 } from "../src/parse";
 import { fixtures } from "./fixtures/tasks";
 
@@ -366,5 +367,13 @@ describe("in-progress status and start:", () => {
 		const span = result.spans.find((s) => s.kind === "start")!;
 		expect(line.slice(span.start, span.end)).toBe("start:2026-09-19");
 		expect(checkboxBodyStart(line)).toBe(6);
+	});
+});
+
+describe("statusMark", () => {
+	it("maps each status to its checkbox character", () => {
+		expect(statusMark("open")).toBe(" ");
+		expect(statusMark("progress")).toBe("/");
+		expect(statusMark("done")).toBe("x");
 	});
 });

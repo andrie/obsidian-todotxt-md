@@ -41,7 +41,7 @@
    drop tokens the user wrote (beyond canonicalization the user opted into). Any grammar change
    ships with round-trip tests.
 3. **Canonical token order** (from `SPEC.md`): `[checkbox] (PRIO) [completion-date]
-   [creation-date] description +Project #context due:YYYY-MM-DD [t:YYYY-MM-DD]`. Deviations a
+   [creation-date] description +Project #context due:YYYY-MM-DD [t:YYYY-MM-DD] [start:YYYY-MM-DD]`. Deviations a
    user typed by hand are preserved on read; canonical order is only enforced when the plugin
    rewrites a line.
 4. **Deliberate deviations from pure todo.txt are documented, not accidental.** Current

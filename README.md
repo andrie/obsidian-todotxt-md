@@ -34,12 +34,21 @@ legible as plain text with or without the plugin installed.
   on mobile). Typing `+` or `@` lists names already used in your tasks, most used first
 - In-place sort orders the checkbox block under your cursor by priority, then due date, then
   creation date; also available from the editor's right-click menu
-- Cycle status moves a task open, in progress (`[/]`, writes `start:`), done (writes the completion date), and back, adding and removing dates automatically,
-  per the `todo.txt` convention; also available from the editor's right-click menu
-- In the aggregated view, `[[wikilinks]]` in a task render as clickable links (aliases, headings and hover preview work; embeds stay as text). A link containing `#` or `+` inside its text, such as `[[Q3 #plan]]`, is split by the task parser first and will not render.
+- Three task states: open `- [ ]`, in progress `- [/]` and done `- [x]`. The Cycle status
+  command (also in the editor's right-click menu) steps through them and keeps the dates in
+  step: entering in progress writes `start:`, entering done writes the completion date (and a
+  creation date, if the task has none), and stepping back to open removes the completion date
+  and `start:`. Clicking a task's checkbox in the editor does the same, and typing `- [/]`
+  stamps `start:` for you
+- Create task inserts a new `- [ ]` line already carrying today's creation date
 - The aggregated task view lists every task across your vault, or a configured set of folders,
-  filterable by due-date window and done state. Complete or uncomplete a task directly from the
-  list, or click it to jump to the source line
+  filterable by due-date window and done state. Each task has a status circle (empty, half or
+  full): click it to cycle the status, or click the task to jump to the source line.
+  In-progress tasks are listed first
+- In the aggregated view, `[[wikilinks]]` render as clickable links, with aliases
+  (`[[Note|alias]]`), headings (`[[Note#Heading]]`) and hover preview. Embeds (`![[...]]`) stay
+  as text. A link whose text contains `#` or `+`, such as `[[Q3 #plan]]`, is split by the task
+  parser first and will not render as a link
 - Note-level settings: a note's front matter can leave it out of the aggregated view, or give
   every task in it shared `+project` and `@place` tags (see "Note-level settings")
 
@@ -50,13 +59,17 @@ legible as plain text with or without the plugin installed.
       prio  creation date       description         project  context   due date
 ```
 
+- Status: `[ ]` open, `[/]` in progress, `[x]` done. `[/]` is not part of `todo.txt` but is a
+  common marker in other task systems, and the line stays a valid Markdown checkbox
 - Priority: `(A)`-`(Z)`, immediately after the checkbox
 - Projects: `+ProjectName`
 - Contexts: `#tag` or `@context`, both accepted. `#tag` uses Obsidian-native tags, so the tag
   pane and search work automatically; `@context` is `todo.txt`'s own spelling. Whichever you
   type is preserved exactly
-- Dates: ISO `YYYY-MM-DD`. `due:` and `t:` (threshold/start date) use `todo.txt`'s own documented
-  `key:value` extension convention
+- Dates: ISO `YYYY-MM-DD`. A bare leading date is the creation date (core `todo.txt`); a
+  completed task carries its completion date before it. `due:` and `t:` (threshold) use
+  `todo.txt`'s own documented `key:value` extension convention. `start:` (when work began)
+  follows the same convention, and is not part of `todo.txt` itself
 
 Your tasks stay fully legible, editable, and portable as plain Markdown, with or without this
 plugin installed.

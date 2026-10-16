@@ -39,7 +39,9 @@ Genius plugins.
 - Priority `(A)`–`(Z)`; Projects `+Project`; **Contexts `#tag` or `@context`, both first-class**
   (`#tag` for Obsidian tag-pane indexing, `@context` for todo.txt-spec fidelity; each token's
   original prefix is preserved on every rewrite, never canonicalized — see `DECISIONS.md`
-  2026-10-03); Dates ISO `YYYY-MM-DD` (`due:`, optional `t:` threshold).
+  2026-10-03); Dates ISO `YYYY-MM-DD` (`due:`, optional `t:` threshold, `start:` for when work began).
+- Status: `[ ]` open, `[/]` in progress (non-standard, see `DECISIONS.md` 2026-10-16), `[x]` done.
+  `start:` is written on entering in progress; the creation date is spec-faithful and never removed.
 - Human date shortcuts (`tod`, `tom`, weekdays, `+3d`) are input-only, expanded at edit time,
   **never persisted**.
 
@@ -53,8 +55,9 @@ Genius plugins.
 
 ## v1 commands (all hotkey-bindable, operate on cursor line/block)
 
-Increase/decrease priority · expand date token · sort current checkbox block in place · toggle
-done (with completion date) · **aggregated cross-file view** (moved into v1 on 2026-09-20 —
+Increase/decrease priority · expand date token · sort current checkbox block in place · cycle
+status (open `[ ]` → in progress `[/]` → done `[x]`, maintaining `start:`/completion dates) ·
+create task (dated) · **aggregated cross-file view** (moved into v1 on 2026-09-20 —
 see `DECISIONS.md` — it replaces Dataview due-date querying, which was investigated and
 confirmed unreachable without bracketed fields or Tasks-plugin emoji, both rejected).
 

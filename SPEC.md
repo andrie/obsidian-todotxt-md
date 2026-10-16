@@ -122,8 +122,8 @@ A task is any Markdown list item that is a checkbox. Canonical token order:
 - **Priority:** `(A)`–`(Z)` immediately after the checkbox. Absence = no priority.
 - **Dates:** ISO `YYYY-MM-DD`. `due:` is the key date field, using todo.txt's spec'd
   `key:value` extension mechanism (see "Interop note" below — not a core spec field, but the
-  spec's own documented example); optionally support `t:` (threshold/start), the same
-  mechanism. Bare leading date = creation date (this one **is** core todo.txt spec).
+  spec's own documented example); optionally support `t:` (threshold), the same
+  mechanism, and `start:` (date work began, see Status below). Bare leading date = creation date (this one **is** core todo.txt spec).
 - **Projects:** `+Project` (todo.txt-native; Dataview indexes as inline text — acceptable).
 - **Contexts:** `#tag` (deviation — Obsidian-native, so tag pane / search / Dataview all work
   for free).
@@ -161,7 +161,7 @@ Dataview being installed at all, consistent with "best-effort, no hard dependenc
 
 `parseTaskLine` must have a defined answer for every input, not just the canonical case. The
 rule: **`parseTaskLine` recognizes a line as a task iff it is a Markdown checkbox
-(`- [ ]`/`- [x]`, any leading indentation)** — that's the only gate. Once a line passes the
+(`- [ ]`/`- [/]`/`- [x]`, any leading indentation)** — that's the only gate. Once a line passes the
 checkbox gate, parsing of the *body* (everything after the checkbox marker) is **best-effort
 and always succeeds**, never returns `null` for the body itself. Tokens matching
 priority/date/project/context patterns anywhere in the body are extracted into their `Task`
@@ -188,12 +188,19 @@ doesn't recognize preserved as literal text rather than dropped.** This guarante
 fidelity even for messy input, and gives `parse.test.ts` a concrete fixture table to start from
 (see also "Multiple projects/contexts" and "Completion" below).
 
-**Completion field handling:** toggling `- [ ]` → `- [x]` prepends the completion date and
+**Status and date handling (revised 2026-10-16, see `DECISIONS.md`):** the Cycle status command
+steps open → in progress → done → open. Entering in progress writes `start:` (today); entering
+done prepends the completion date (and a creation date if the task has none, as todo.txt
+requires one whenever there is the other); going back to open removes the completion date and
+`start:`. The creation date is never removed. A task is only given `start:` when it is actually
+started, so a task completed without being started has none.
+
+**Completion field handling:** completing a task prepends the completion date and
 **leaves `due:`/`t:` untouched** — a completed task keeps its due date as a historical record
 (consistent with plain todo.txt convention; also lets the plugin's own aggregated view compute
 "completed late" by comparing `due:` vs. completion date — not a Dataview query, per the
-2026-09-20 interop revision above). Toggling back off removes the completion date and restores
-the line exactly as it was (round-trip via the preserved original token order).
+2026-09-20 interop revision above). Cycling back to open removes the completion date and `start:`
+(round-trip via the preserved original token order).
 
 ---
 
@@ -212,12 +219,16 @@ Standard Obsidian plugin scaffold. Module layout:
   `due` asc, then creation date. Operates on a contiguous list block. **Read
   `artem98/obsidian_tasks_sort` first** for cursor-block detection (blank line / non-task line
   ends the block) and the in-place line-rewrite technique.
+- `src/links.ts` — pure `splitWikilinks(text)`: splits description text into text and
+  `[[wikilink]]` segments (alias, heading and block references; embeds stay literal) so the
+  aggregated view can render links. Display only; never rewrites task text.
 - `src/editor.ts` — Obsidian `Editor` glue: find current task line / current list block, apply
   the pure transforms, write back **preserving indentation and cursor position**.
 - `src/view.ts` — **v1 scope** (moved up from v1.5 on 2026-09-20, see `DECISIONS.md`) —
   aggregated `ItemView`: scans project files + daily notes via the vault API, parses each
   checkbox with `parse.ts`, renders a sortable/filterable flat list (filter by `#context`,
-  `+project`, due window). Clicking a task jumps to its source line. This is the plugin's
+  `+project`, due window). Each task has a status circle (open / half / full) that cycles
+  status; clicking the task jumps to its source line; `[[wikilinks]]` render as links. This is the plugin's
   answer to "query my tasks across files," replacing the Dataview-due-date-query capability
   that turned out to be unreachable without brackets or emoji (see "Interop note" above).
 
@@ -243,7 +254,7 @@ for us in general:
       before — the cursor must be re-anchored to *the same task* (e.g., by tracking the task's
       original text/id through the sort), not to "line N," or it will silently jump to whatever
       task now occupies that line number.
-    - Toggle-done prepends a date token, shifting every character after it — if the cursor was
+    - Cycling to done prepends a date token, shifting every character after it — if the cursor was
       mid-description, its column offset must shift by the prepended length, not stay fixed.
   Concretely: compute the new cursor position from the semantic edit (which token was
   inserted/removed and where) rather than reusing the pre-edit `{line, ch}` unchanged.
@@ -275,7 +286,7 @@ leading position — immediately after the checkbox, or immediately after a prio
 completion date on a done task), which has no `key:` prefix to type and so couldn't reach the
 existing `due:`/`t:` trigger. The colon is pure trigger syntax (never persisted) and is
 consumed on selection along with the replaced text. Which `Task` field the result conceptually
-targets is decided solely by `task.done` — not by cursor position among the leading tokens —
+targets is decided solely by `task.status === "done"` — not by cursor position among the leading tokens —
 so a done task's `:` always means completion date, never creation date, even if typed after an
 existing priority token. Added `parse.ts`'s `checkboxBodyStart()` export so this trigger reuses
 the single-source-of-truth checkbox-prefix match instead of re-deriving it.
@@ -313,8 +324,10 @@ Commands (all hotkey-bindable, all operating on the cursor's current line/block)
    `dates.ts` owns the mapping.
 3. **Sort current list** — `sortLines` over the contiguous checkbox block the cursor is in,
    rewritten in place. Setting: also offer "sort whole note".
-4. **Toggle done** — prepend/strip completion date (native toggle exists, but ours enforces the
-   date convention).
+4. **Cycle status** — open → in progress (`start:`) → done (completion date) → open; adds and
+   strips dates (native toggle exists, but ours enforces the date convention). Also fired by a
+   click on a task checkbox in the editor, and `- [/]` typed by hand stamps `start:`. A separate
+   **Create task** command inserts `- [ ] <today> `.
 5. **Aggregated view** (moved up from v1.5 on 2026-09-20 — see `DECISIONS.md`) — an `ItemView`
    scanning project files + daily notes, parsing each checkbox with `parse.ts`, rendering a
    sortable/filterable flat list (filter by `#context`, `+project`, due window). Clicking a task
@@ -413,8 +426,8 @@ deferred features go here as they're identified; none are currently planned.
    fixed clock; `sort.ts` ordering; `priority.ts` cycling including the none↔`(A)` edges.
 2. **In Obsidian (Windows):** create `Work.md`, add several `- [ ]` tasks. Verify each hotkey:
    priority up/down changes `(A)`↔`(B)`↔none on the cursor line; `tod`/`tom`/weekday tokens
-   expand to correct ISO dates; sort reorders the block by priority→due; toggle-done prepends
-   today's completion date.
+   expand to correct ISO dates; sort reorders the block by priority→due; cycle status
+   writes `start:` then the completion date, and clicking a checkbox does the same.
 3. **Interop check (revised 2026-09-20 — see `DECISIONS.md`):** confirm `#context` tags appear
    in Obsidian's tag pane, and a simple Dataview `TASK` query still lists the tasks (proving
    existing checkbox-based workflows aren't broken). **Do not** expect a Dataview field query on

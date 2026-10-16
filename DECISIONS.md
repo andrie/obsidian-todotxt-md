@@ -244,3 +244,30 @@ existing Dataview dashboards to keep working), the bracket-syntax option (Option
 still available without touching this decision — it would be an additive parser change
 (`parseTaskLine` already needs to be lenient; recognizing `[due:: ...]` as an alternate spelling
 of the same field is a small, backward-compatible addition), not a reversal of this one.
+
+
+## 2026-10-16 - In-progress status (`[/]`) and a `start:` key
+
+**Decision.** A task has three states: `- [ ]` open, `- [/]` in progress, `- [x]` done. `[/]`
+is not todo.txt, but it is a common marker in other task systems and still a valid Markdown
+checkbox, so plain-text legibility is intact. A new `start:YYYY-MM-DD` key (modelled on `due:`)
+records when work began.
+
+**Why a separate key.** todo.txt has exactly two dates: creation and completion. Writing the
+start date into the creation slot would lose when the task was created, and a second leading
+date on an open task is invalid per the spec (`SPEC.md`, parse leniency table). `start:` keeps
+creation date spec-faithful and adds the extra information as an extension.
+
+**Date rules.** Open -> in progress writes `start:` (today). In progress -> done writes the
+completion date, and the creation date too if missing (todo.txt requires a creation date
+whenever there is a completion date). Done -> open removes the completion date and `start:`.
+The creation date is never removed. A task is only given `start:` when it is actually started,
+never on a bare task; a task completed without being started gets no `start:`.
+
+**Creation date.** Added by a "Create task" command, or lazily when the task reaches done.
+Auto-inserting while typing `- [ ] ` was rejected as fragile against Obsidian's own list
+continuation.
+
+**Typing `[/]`.** An `editor-change` listener stamps `start:` when a line has just become
+`[/]` without one (typed or via checkbox click). It does not fire for lines already in
+progress.

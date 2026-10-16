@@ -53,7 +53,7 @@ export function suggestFields(line: string, clock: Clock): FieldSuggestion[] {
 			kind: "created",
 			label: "Created",
 			hint: today,
-			show: !task.done && task.creationDate === null,
+			show: task.status !== "done" && task.creationDate === null,
 		},
 		{ kind: "due", label: "due:", hint: "due date", show: task.due === null },
 		{ kind: "threshold", label: "t:", hint: "start date", show: task.threshold === null },
@@ -128,7 +128,7 @@ export function planFieldEdit(
 
 	if (kind === "created") {
 		const iso = expandDateToken("tod", clock);
-		if (!iso || parsed.task.done || parsed.task.creationDate !== null) return null;
+		if (!iso || parsed.task.status === "done" || parsed.task.creationDate !== null) return null;
 		const edits = [createdEdit(line, parsed.spans, bodyStart, iso)];
 		return { edits, cursor: mapCursor(ch, edits) };
 	}

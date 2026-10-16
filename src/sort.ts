@@ -1,17 +1,19 @@
-import { parseTaskLine, type Task } from "./parse";
+import { parseTaskLine, type Task, type TaskStatus } from "./parse";
+
+const STATUS_RANK: Record<TaskStatus, number> = { progress: 0, open: 1, done: 2 };
 
 /**
- * Default comparator operating on parsed Tasks directly: incomplete before done (per the
+ * Default comparator operating on parsed Tasks directly: in progress, then open, then done (per the
  * todo.txt spec's "completed tasks sort to the bottom" convention — their reference
  * implementation gets this for free from a lexicographic sort of the raw line, since done
- * tasks are "x"-prefixed; we sort parsed fields instead, so `done` must be an explicit
+ * tasks are "x"-prefixed; we sort parsed fields instead, so `status` must be an explicit
  * top-level key), then priority ascending (none last), then due date ascending (none last),
  * then creation date ascending (none last). Shared by this file's line-based compareLines and
  * aggregate.ts's Task-based sorting so both stay in sync (DESIGN_RULES.md section 3.2: sorting
  * must be stable and total).
  */
 export function compareTasks(a: Task, b: Task): number {
-	if (a.done !== b.done) return a.done ? 1 : -1;
+	if (a.status !== b.status) return STATUS_RANK[a.status] - STATUS_RANK[b.status];
 
 	const prioA = a.priority ?? "￿";
 	const prioB = b.priority ?? "￿";

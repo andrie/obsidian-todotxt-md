@@ -9,10 +9,13 @@ export interface ContextToken {
 	prefix: "@" | "#";
 }
 
+/** `[ ]` open, `[/]` in progress (not todo.txt core, but common in other task systems), `[x]` done. */
+export type TaskStatus = "open" | "progress" | "done";
+
 export interface Task {
 	/** Leading whitespace/list-marker indentation, preserved verbatim. */
 	indent: string;
-	done: boolean;
+	status: TaskStatus;
 	/** Completion date, only present when done. ISO YYYY-MM-DD. */
 	completionDate: string | null;
 	/** Priority letter A-Z, only recognized immediately after the checkbox. */
@@ -26,12 +29,19 @@ export interface Task {
 	contexts: ContextToken[];
 	due: string | null;
 	threshold: string | null;
+	/** Date the task was actually started (`start:` key, not todo.txt core). ISO YYYY-MM-DD. */
+	start: string | null;
 }
 
-const CHECKBOX_RE = /^(\s*[-*]\s\[)([ xX])(\]\s?)(.*)$/;
+const CHECKBOX_RE = /^(\s*[-*]\s\[)([ xX/])(\]\s?)(.*)$/;
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const PRIORITY_RE = /^\(([A-Za-z])\)\s*/;
 const LEADING_DATE_RE = /^(\d{4}-\d{2}-\d{2})\s+/;
+
+function statusFromMark(mark: string): TaskStatus {
+	if (mark === "/") return "progress";
+	return mark === "x" || mark === "X" ? "done" : "open";
+}
 
 /**
  * Returns the offset into `line` where the checkbox body starts (immediately after
@@ -59,13 +69,13 @@ export function parseTaskLine(line: string): Task | null {
 	if (!checkboxMatch) return null;
 
 	const [, prefix, mark, , rest] = checkboxMatch;
-	const done = mark === "x" || mark === "X";
+	const status = statusFromMark(mark);
 	const indent = prefix.match(/^\s*/)?.[0] ?? "";
 
 	let body = rest;
 
 	let completionDate: string | null = null;
-	if (done) {
+	if (status === "done") {
 		const completionMatch = LEADING_DATE_RE.exec(body);
 		if (completionMatch) {
 			completionDate = completionMatch[1];
@@ -91,6 +101,7 @@ export function parseTaskLine(line: string): Task | null {
 	const contexts: ContextToken[] = [];
 	let due: string | null = null;
 	let threshold: string | null = null;
+	let start: string | null = null;
 
 	const words = body.split(" ");
 	const remainder: string[] = [];
@@ -118,6 +129,13 @@ export function parseTaskLine(line: string): Task | null {
 				continue;
 			}
 		}
+		if (word.startsWith("start:")) {
+			const value = word.slice(6);
+			if (ISO_DATE_RE.test(value) && start === null) {
+				start = value;
+				continue;
+			}
+		}
 		remainder.push(word);
 	}
 
@@ -125,7 +143,7 @@ export function parseTaskLine(line: string): Task | null {
 
 	return {
 		indent,
-		done,
+		status,
 		completionDate,
 		priority,
 		creationDate,
@@ -134,6 +152,7 @@ export function parseTaskLine(line: string): Task | null {
 		contexts,
 		due,
 		threshold,
+		start,
 	};
 }
 
@@ -148,7 +167,8 @@ export interface TokenSpan {
 		| "project"
 		| "context"
 		| "due"
-		| "threshold";
+		| "threshold"
+		| "start";
 }
 
 /**
@@ -162,7 +182,7 @@ export function parseTaskLineWithSpans(line: string): { task: Task; spans: Token
 	if (!checkboxMatch) return null;
 
 	const [, prefix, mark, bracketClose, rest] = checkboxMatch;
-	const done = mark === "x" || mark === "X";
+	const status = statusFromMark(mark);
 	const indent = prefix.match(/^\s*/)?.[0] ?? "";
 
 	const spans: TokenSpan[] = [];
@@ -170,7 +190,7 @@ export function parseTaskLineWithSpans(line: string): { task: Task; spans: Token
 	let body = rest;
 
 	let completionDate: string | null = null;
-	if (done) {
+	if (status === "done") {
 		const completionMatch = LEADING_DATE_RE.exec(body);
 		if (completionMatch) {
 			completionDate = completionMatch[1];
@@ -206,6 +226,7 @@ export function parseTaskLineWithSpans(line: string): { task: Task; spans: Token
 	const contexts: ContextToken[] = [];
 	let due: string | null = null;
 	let threshold: string | null = null;
+	let start: string | null = null;
 
 	const words = body.split(" ");
 	const remainder: string[] = [];
@@ -240,6 +261,14 @@ export function parseTaskLineWithSpans(line: string): { task: Task; spans: Token
 				continue;
 			}
 		}
+		if (word.startsWith("start:")) {
+			const value = word.slice(6);
+			if (ISO_DATE_RE.test(value) && start === null) {
+				start = value;
+				spans.push({ kind: "start", start: wordStart, end: wordStart + word.length });
+				continue;
+			}
+		}
 		remainder.push(word);
 	}
 
@@ -247,7 +276,7 @@ export function parseTaskLineWithSpans(line: string): { task: Task; spans: Token
 
 	const task: Task = {
 		indent,
-		done,
+		status,
 		completionDate,
 		priority,
 		creationDate,
@@ -256,6 +285,7 @@ export function parseTaskLineWithSpans(line: string): { task: Task; spans: Token
 		contexts,
 		due,
 		threshold,
+		start,
 	};
 
 	return { task, spans };
@@ -301,10 +331,10 @@ export function detectMalformedPriority(line: string): TokenSpan | null {
  * reproduced there, satisfying round-trip fidelity for messy input.
  */
 export function serializeTask(task: Task): string {
-	const mark = task.done ? "x" : " ";
+	const mark = task.status === "done" ? "x" : task.status === "progress" ? "/" : " ";
 	const parts: string[] = [`${task.indent}- [${mark}]`];
 
-	if (task.done && task.completionDate) {
+	if (task.status === "done" && task.completionDate) {
 		parts.push(task.completionDate);
 	}
 	if (task.priority) {
@@ -327,6 +357,9 @@ export function serializeTask(task: Task): string {
 	}
 	if (task.threshold) {
 		parts.push(`t:${task.threshold}`);
+	}
+	if (task.start) {
+		parts.push(`start:${task.start}`);
 	}
 
 	return parts.join(" ");

@@ -83,3 +83,14 @@ describe("compareTasks", () => {
 		expect(tasks.map((t) => t.description)).toEqual(["first", "second", "no priority"]);
 	});
 });
+
+describe("sortLines with in-progress tasks", () => {
+	it("orders in progress before open before done, regardless of priority", () => {
+		const input = ["- [x] (A) done", "- [ ] (A) open", "- [/] no priority in progress"];
+		expect(sortLines(input)).toEqual([
+			"- [/] no priority in progress",
+			"- [ ] (A) open",
+			"- [x] (A) done",
+		]);
+	});
+});

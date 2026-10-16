@@ -27,7 +27,7 @@ export const fixtures: Fixture[] = [
 		raw: "- [ ] (A) 2026-09-19 Call the bank about the loan +Finance #calls due:2026-09-25",
 		parsed: {
 			indent: "",
-			done: false,
+			status: "open",
 			completionDate: null,
 			priority: "A",
 			creationDate: "2026-09-19",
@@ -36,6 +36,7 @@ export const fixtures: Fixture[] = [
 			contexts: [{ name: "calls", prefix: "#" }],
 			due: "2026-09-25",
 			threshold: null,
+			start: null,
 		},
 	},
 	{
@@ -43,7 +44,7 @@ export const fixtures: Fixture[] = [
 		raw: "- [x] 2026-09-20 (A) 2026-09-19 Renewed passport +Admin",
 		parsed: {
 			indent: "",
-			done: true,
+			status: "done",
 			completionDate: "2026-09-20",
 			priority: "A",
 			creationDate: "2026-09-19",
@@ -52,6 +53,7 @@ export const fixtures: Fixture[] = [
 			contexts: [],
 			due: null,
 			threshold: null,
+			start: null,
 		},
 	},
 	{
@@ -59,7 +61,7 @@ export const fixtures: Fixture[] = [
 		raw: "- [ ] Call the bank",
 		parsed: {
 			indent: "",
-			done: false,
+			status: "open",
 			completionDate: null,
 			priority: null,
 			creationDate: null,
@@ -68,6 +70,7 @@ export const fixtures: Fixture[] = [
 			contexts: [],
 			due: null,
 			threshold: null,
+			start: null,
 		},
 	},
 	{
@@ -75,7 +78,7 @@ export const fixtures: Fixture[] = [
 		raw: "- [ ] Call (A) the bank",
 		parsed: {
 			indent: "",
-			done: false,
+			status: "open",
 			completionDate: null,
 			priority: null,
 			creationDate: null,
@@ -84,6 +87,7 @@ export const fixtures: Fixture[] = [
 			contexts: [],
 			due: null,
 			threshold: null,
+			start: null,
 		},
 	},
 	{
@@ -91,7 +95,7 @@ export const fixtures: Fixture[] = [
 		raw: "- [ ] (A) (B) Call the bank",
 		parsed: {
 			indent: "",
-			done: false,
+			status: "open",
 			completionDate: null,
 			priority: "A",
 			creationDate: null,
@@ -100,6 +104,7 @@ export const fixtures: Fixture[] = [
 			contexts: [],
 			due: null,
 			threshold: null,
+			start: null,
 		},
 	},
 	{
@@ -108,7 +113,7 @@ export const fixtures: Fixture[] = [
 		skipRoundTrip: true,
 		parsed: {
 			indent: "",
-			done: false,
+			status: "open",
 			completionDate: null,
 			priority: null,
 			creationDate: null,
@@ -117,6 +122,7 @@ export const fixtures: Fixture[] = [
 			contexts: [],
 			due: "2026-09-25",
 			threshold: null,
+			start: null,
 		},
 	},
 	{
@@ -124,7 +130,7 @@ export const fixtures: Fixture[] = [
 		raw: "- [ ] +Proj1 +Proj2 Call the bank",
 		parsed: {
 			indent: "",
-			done: false,
+			status: "open",
 			completionDate: null,
 			priority: null,
 			creationDate: null,
@@ -133,6 +139,7 @@ export const fixtures: Fixture[] = [
 			contexts: [],
 			due: null,
 			threshold: null,
+			start: null,
 		},
 	},
 	{
@@ -140,7 +147,7 @@ export const fixtures: Fixture[] = [
 		raw: "- [ ] due:2026-9-5 Call the bank",
 		parsed: {
 			indent: "",
-			done: false,
+			status: "open",
 			completionDate: null,
 			priority: null,
 			creationDate: null,
@@ -149,6 +156,7 @@ export const fixtures: Fixture[] = [
 			contexts: [],
 			due: null,
 			threshold: null,
+			start: null,
 		},
 	},
 	{
@@ -156,7 +164,7 @@ export const fixtures: Fixture[] = [
 		raw: "- [ ]",
 		parsed: {
 			indent: "",
-			done: false,
+			status: "open",
 			completionDate: null,
 			priority: null,
 			creationDate: null,
@@ -165,6 +173,7 @@ export const fixtures: Fixture[] = [
 			contexts: [],
 			due: null,
 			threshold: null,
+			start: null,
 		},
 	},
 	{
@@ -172,7 +181,7 @@ export const fixtures: Fixture[] = [
 		raw: "- [ ] Call the bank @home #calls",
 		parsed: {
 			indent: "",
-			done: false,
+			status: "open",
 			completionDate: null,
 			priority: null,
 			creationDate: null,
@@ -184,6 +193,7 @@ export const fixtures: Fixture[] = [
 			],
 			due: null,
 			threshold: null,
+			start: null,
 		},
 	},
 ];

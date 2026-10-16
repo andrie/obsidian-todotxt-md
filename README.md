@@ -34,8 +34,9 @@ legible as plain text with or without the plugin installed.
   on mobile). Typing `+` or `@` lists names already used in your tasks, most used first
 - In-place sort orders the checkbox block under your cursor by priority, then due date, then
   creation date; also available from the editor's right-click menu
-- Toggle done marks a task complete or incomplete and handles the completion date automatically,
+- Cycle status moves a task open, in progress (`[/]`, writes `start:`), done (writes the completion date), and back, adding and removing dates automatically,
   per the `todo.txt` convention; also available from the editor's right-click menu
+- In the aggregated view, `[[wikilinks]]` in a task render as clickable links (aliases, headings and hover preview work; embeds stay as text). A link containing `#` or `+` inside its text, such as `[[Q3 #plan]]`, is split by the task parser first and will not render.
 - The aggregated task view lists every task across your vault, or a configured set of folders,
   filterable by due-date window and done state. Complete or uncomplete a task directly from the
   list, or click it to jump to the source line

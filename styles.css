@@ -83,8 +83,40 @@ settings:
 	background-color: var(--background-modifier-hover);
 }
 
-.todotxt-md-task-item input[type="checkbox"] {
+/* Status control: open circle / half circle / full circle (open, in progress, done). */
+.todotxt-md-status {
+	flex: none;
+	box-sizing: border-box;
+	width: 1em;
+	height: 1em;
 	margin-right: 0.5em;
+	padding: 0;
+	border: 2px solid currentColor;
+	border-radius: 50%;
+	background: transparent;
+	box-shadow: none;
+	cursor: pointer;
+	vertical-align: middle;
+}
+
+.todotxt-md-status[data-status="progress"] {
+	background: linear-gradient(90deg, currentColor 50%, transparent 50%);
+}
+
+.todotxt-md-status[data-status="done"] {
+	background: currentColor;
+}
+
+/*
+ * Editor fallback for "- [/]": Obsidian already styles "[ ]" and "[x]" (and themes may restyle
+ * them); in-progress is a non-standard status, so draw a half fill unless a theme does it.
+ */
+input.task-list-item-checkbox[data-task="/"] {
+	background: linear-gradient(90deg, var(--checkbox-color) 50%, transparent 50%);
+}
+
+input.task-list-item-checkbox[data-task="/"]::after {
+	display: none;
 }
 
 .todotxt-md-task-item.is-done {

@@ -65,13 +65,22 @@ describe("aggregateTasks", () => {
 
 	it("excludes done tasks by default", () => {
 		const result = aggregateTasks(records, DEFAULT_FILTER, fixedClock);
-		expect(result.every((r) => !r.task.done)).toBe(true);
+		expect(result.every((r) => r.task.status !== "done")).toBe(true);
+	});
+
+	it("keeps in-progress tasks when done tasks are excluded, listed first", () => {
+		const withProgress = [
+			...records,
+			record("- [/] Draft report +Work start:2026-09-18", "Work.md", 3),
+		];
+		const result = aggregateTasks(withProgress, DEFAULT_FILTER, fixedClock);
+		expect(result[0].task.status).toBe("progress");
 	});
 
 	it("includes done tasks when includeDone is true", () => {
 		const filter: AggregateFilter = { ...DEFAULT_FILTER, includeDone: true };
 		const result = aggregateTasks(records, filter, fixedClock);
-		expect(result.some((r) => r.task.done)).toBe(true);
+		expect(result.some((r) => r.task.status === "done")).toBe(true);
 	});
 
 	it("filters by context with AND semantics", () => {

@@ -31,6 +31,7 @@ const KIND_TO_CLASS: Partial<Record<TokenSpan["kind"], string>> = {
 	creationDate: "todotxt-md-hl-date",
 	due: "todotxt-md-hl-date",
 	threshold: "todotxt-md-hl-date",
+	start: "todotxt-md-hl-date",
 };
 
 /**
@@ -60,7 +61,7 @@ export function computeLineDecorations(lineText: string, lineFrom: number): Pend
 
 	const parsed = parseTaskLineWithSpans(lineText);
 	if (parsed) {
-		if (parsed.task.done) {
+		if (parsed.task.status === "done") {
 			pending.push({
 				from: lineFrom,
 				to: lineFrom,

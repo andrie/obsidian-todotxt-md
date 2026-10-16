@@ -101,8 +101,8 @@ export function sortBlockAtCursor(editor: Editor): void {
 	}
 
 	const indices = blockLines.map((_, i) => i);
-	const sortedIndices = [...indices].sort(
-		(i, j) => defaultComparator(blockLines[i], blockLines[j]),
+	const sortedIndices = [...indices].sort((i, j) =>
+		defaultComparator(blockLines[i], blockLines[j]),
 	);
 	const sorted = sortedIndices.map((i) => blockLines[i]);
 	const newRelativeIndex = sortedIndices.indexOf(originalCursorLine - start);
@@ -119,23 +119,94 @@ export function sortBlockAtCursor(editor: Editor): void {
 }
 
 /**
- * Toggles done state on a Task, prepending/stripping the completion date per the todo.txt
- * convention. due:/t: are left untouched on completion (SPEC.md "Completion field handling")
- * — a completed task keeps its due date as a historical record. Pure: no Obsidian types, so
- * it's reusable by both the cursor-based command below and the aggregated view's checkbox
- * (view.ts), which has no open Editor to operate on.
+ * Advances a Task one step round open -> in progress -> done -> open, maintaining its dates:
+ * entering progress writes `start:` (today); entering done writes the completion date, and
+ * the creation date too if missing (todo.txt requires one whenever there is the other);
+ * going back to open drops the completion date and `start:`. The creation date is task
+ * metadata and is never removed. due:/t: are left untouched (SPEC.md "Completion field
+ * handling"). Pure: no Obsidian types, so it's reusable by both the cursor-based command
+ * below and the aggregated view's status control (view.ts), which has no open Editor.
  */
-export function toggleDone(task: Task, clock: Clock): Task {
-	return task.done
-		? { ...task, done: false, completionDate: null }
-		: { ...task, done: true, completionDate: expandDateToken("tod", clock) };
+export function cycleStatus(task: Task, clock: Clock): Task {
+	const today = expandDateToken("tod", clock);
+	switch (task.status) {
+		case "open":
+			return { ...task, status: "progress", start: today };
+		case "progress":
+			return {
+				...task,
+				status: "done",
+				completionDate: today,
+				creationDate: task.creationDate ?? today,
+			};
+		case "done":
+			return { ...task, status: "open", completionDate: null, start: null };
+	}
+}
+
+/** A fresh open task line, dated with today's creation date (todo.txt creation-date slot). */
+export function createTaskLine(indent: string, clock: Clock): string {
+	return (
+		serializeTask({
+			indent,
+			status: "open",
+			completionDate: null,
+			priority: null,
+			creationDate: expandDateToken("tod", clock),
+			description: "",
+			projects: [],
+			contexts: [],
+			due: null,
+			threshold: null,
+			start: null,
+		}) + " "
+	);
 }
 
 /**
- * Toggles done state on the cursor's line, via toggleDone. No-ops if the cursor isn't on a
+ * For a line edit from `before` to `after`: if the line has just become an in-progress task
+ * ("- [/]", whether typed or set by clicking a checkbox) and carries no `start:` yet, returns
+ * the line with `start:` added; otherwise null. Never fires on lines that were already in
+ * progress, so later edits to the description don't re-stamp the date.
+ */
+export function startIfEnteredProgress(before: string, after: string, clock: Clock): string | null {
+	const next = parseTaskLine(after);
+	if (!next || next.status !== "progress" || next.start !== null) return null;
+	if (parseTaskLine(before)?.status === "progress") return null;
+	return serializeTask({ ...next, start: expandDateToken("tod", clock) });
+}
+
+/** Inserts a new dated open task on the cursor's line (or below it, if that line has text). */
+export function createTaskAtCursor(editor: Editor, clock: Clock): void {
+	const { line } = editor.getCursor();
+	const current = editor.getLine(line);
+	const indent = current.match(/^\s*/)?.[0] ?? "";
+	const newLine = createTaskLine(indent, clock);
+	if (current.trim() === "") {
+		replaceLine(editor, line, newLine);
+		editor.setCursor({ line, ch: newLine.length });
+	} else {
+		editor.replaceRange("\n" + newLine, { line, ch: current.length });
+		editor.setCursor({ line: line + 1, ch: newLine.length });
+	}
+}
+
+/**
+ * Cycles status on a specific line (e.g. the one whose checkbox was clicked). Returns false
+ * if that line isn't a task. The cursor is left alone.
+ */
+export function cycleStatusAtLine(editor: Editor, lineNumber: number, clock: Clock): boolean {
+	const task = parseTaskLine(editor.getLine(lineNumber));
+	if (!task) return false;
+	replaceLine(editor, lineNumber, serializeTask(cycleStatus(task, clock)));
+	return true;
+}
+
+/**
+ * Cycles status on the cursor's line, via cycleStatus. No-ops if the cursor isn't on a
  * task line.
  */
-export function toggleDoneAtCursor(editor: Editor, clock: Clock): void {
+export function cycleStatusAtCursor(editor: Editor, clock: Clock): void {
 	const found = currentLineTask(editor);
 	if (!found) return;
 
@@ -143,7 +214,7 @@ export function toggleDoneAtCursor(editor: Editor, clock: Clock): void {
 	const cursor = editor.getCursor();
 	const before = serializeTask(task);
 
-	const updated = toggleDone(task, clock);
+	const updated = cycleStatus(task, clock);
 
 	const after = serializeTask(updated);
 	replaceLine(editor, lineNumber, after);

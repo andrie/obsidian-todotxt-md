@@ -3,8 +3,12 @@ import {
 	bumpPriorityAtCursor,
 	expandDateTokenAtCursor,
 	sortBlockAtCursor,
-	toggleDoneAtCursor,
+	cycleStatusAtCursor,
+	createTaskAtCursor,
+	cycleStatusAtLine,
+	startIfEnteredProgress,
 } from "./editor";
+import type { EditorView } from "@codemirror/view";
 import { parseTaskLine } from "./parse";
 import { TaskFieldSuggest } from "./taskSuggest";
 import { VocabIndex } from "./vocabIndex";
@@ -114,9 +118,66 @@ export default class TodotxtMdPlugin extends Plugin {
 
 		this.addCommand({
 			id: "toggle-done",
-			name: "Toggle done",
-			editorCallback: (editor) => toggleDoneAtCursor(editor, systemClock),
+			name: "Cycle status (open, in progress, done)",
+			editorCallback: (editor) => cycleStatusAtCursor(editor, systemClock),
 		});
+
+		this.addCommand({
+			id: "create-task",
+			name: "Create task",
+			editorCallback: (editor) => createTaskAtCursor(editor, systemClock),
+		});
+
+		// Stamp `start:` when a line becomes "- [/]" (typed, or via a checkbox click). Needs the
+		// previous text of each line, which editor-change doesn't supply, so snapshot per editor.
+		const snapshots = new WeakMap<Editor, string[]>();
+		const snapshot = (editor: Editor | undefined) => {
+			if (editor) snapshots.set(editor, editor.getValue().split("\n"));
+		};
+		this.registerEvent(
+			this.app.workspace.on("file-open", () => snapshot(this.app.workspace.activeEditor?.editor)),
+		);
+		this.registerEvent(
+			this.app.workspace.on("active-leaf-change", () =>
+				snapshot(this.app.workspace.activeEditor?.editor),
+			),
+		);
+		this.registerEvent(
+			this.app.workspace.on("editor-change", (editor: Editor) => {
+				const before = snapshots.get(editor);
+				const after = editor.getValue().split("\n");
+				snapshots.set(editor, after);
+				if (!before || before.length !== after.length) return;
+				for (let i = 0; i < after.length; i++) {
+					if (before[i] === after[i]) continue;
+					const stamped = startIfEnteredProgress(before[i], after[i], systemClock);
+					if (stamped === null) continue;
+					const cursor = editor.getCursor();
+					editor.replaceRange(stamped, { line: i, ch: 0 }, { line: i, ch: after[i].length });
+					editor.setCursor(cursor);
+				}
+			}),
+		);
+
+		// Obsidian's own checkbox click only flips "[ ]" and "[x]" and writes no dates. Intercept
+		// it in the editor (capture phase, before Obsidian's handler) and cycle status instead.
+		this.registerDomEvent(
+			document,
+			"click",
+			(evt: MouseEvent) => {
+				const target = evt.target;
+				if (!(target instanceof HTMLInputElement) || target.type !== "checkbox") return;
+				if (!target.classList.contains("task-list-item-checkbox")) return;
+				const editor = this.app.workspace.activeEditor?.editor;
+				const cm = (editor as unknown as { cm?: EditorView } | undefined)?.cm;
+				if (!editor || !cm || !cm.dom.contains(target)) return;
+				const lineNumber = editor.offsetToPos(cm.posAtDOM(target)).line;
+				if (!cycleStatusAtLine(editor, lineNumber, systemClock)) return;
+				evt.preventDefault();
+				evt.stopPropagation();
+			},
+			true,
+		);
 
 		this.registerEvent(
 			this.app.workspace.on("editor-menu", (menu: Menu, editor: Editor) => {
@@ -131,9 +192,9 @@ export default class TodotxtMdPlugin extends Plugin {
 				);
 				menu.addItem((item) =>
 					item
-						.setTitle("Toggle done")
+						.setTitle("Cycle status")
 						.setIcon("check-circle")
-						.onClick(() => toggleDoneAtCursor(editor, systemClock)),
+						.onClick(() => cycleStatusAtCursor(editor, systemClock)),
 				);
 			}),
 		);
@@ -225,7 +286,7 @@ class TodotxtMdSettingTab extends PluginSettingTab {
 			[
 				"Commands (bind your own hotkeys in Settings > Hotkeys)",
 				[
-					"Increase / Decrease priority, Toggle done (adds the completion date), " +
+					"Increase / Decrease priority, Cycle status (open, in progress, done; maintains dates), Create task, " +
 						"Expand date token (tod, tom, mon, +3d become ISO dates), Sort current " +
 						"checkbox block, and Open aggregated task view.",
 				],

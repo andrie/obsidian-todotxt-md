@@ -127,8 +127,11 @@ A task is any Markdown list item that is a checkbox. Canonical token order:
 - **Projects:** `+Project` (todo.txt-native; Dataview indexes as inline text — acceptable).
 - **Contexts:** `#tag` (deviation — Obsidian-native, so tag pane / search / Dataview all work
   for free).
-- **Completion:** toggling `- [ ]` → `- [x]` prepends completion date; toggling back removes
-  it. Priority is preserved inline (see "Settled micro-decisions" below).
+- **Status:** `- [ ]` open, `- [/]` in progress (non-standard, see `DECISIONS.md` 2026-10-16),
+  `- [x]` done. `start:YYYY-MM-DD` records when work began (written on entering in progress).
+- **Completion:** cycling to done prepends the completion date (and a creation date if missing);
+  cycling back to open removes the completion date and `start:`.
+   Priority is preserved inline (see "Settled micro-decisions" below).
 
 **Grammar provenance correction (2026-09-20 — see `DECISIONS.md`):** earlier drafts of this
 file called `due:` "pure todo.txt." That's imprecise. Per the official spec

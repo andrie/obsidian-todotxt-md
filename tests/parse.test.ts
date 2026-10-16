@@ -225,7 +225,11 @@ describe("parseTaskLineWithSpans", () => {
 
 describe("detectMalformedPriority", () => {
 	it("detects wrong bracket characters in the leading position", () => {
-		for (const line of ["- [ ] [A] Call the bank", "- [ ] {A} Call the bank", "- [ ] <A> Call the bank"]) {
+		for (const line of [
+			"- [ ] [A] Call the bank",
+			"- [ ] {A} Call the bank",
+			"- [ ] <A> Call the bank",
+		]) {
 			const result = detectMalformedPriority(line);
 			expect(result).not.toBeNull();
 			if (!result) continue;
@@ -309,5 +313,58 @@ describe("dual-prefix context support (@ and #)", () => {
 		const contextSpans = result.spans.filter((s) => s.kind === "context");
 		expect(contextSpans).toHaveLength(1);
 		expect(line.slice(contextSpans[0].start, contextSpans[0].end)).toBe("@home");
+	});
+});
+
+describe("in-progress status and start:", () => {
+	it("parses [/] as in progress", () => {
+		const task = parseTaskLine("- [/] (A) 2026-09-01 Call the bank start:2026-09-19");
+		expect(task?.status).toBe("progress");
+		expect(task?.start).toBe("2026-09-19");
+		expect(task?.description).toBe("Call the bank");
+	});
+
+	it("reports open and done status", () => {
+		expect(parseTaskLine("- [ ] Task")?.status).toBe("open");
+		expect(parseTaskLine("- [x] Task")?.status).toBe("done");
+		expect(parseTaskLine("- [X] Task")?.status).toBe("done");
+	});
+
+	it("does not read a leading date as a completion date on an in-progress task", () => {
+		const task = parseTaskLine("- [/] 2026-09-01 Call the bank");
+		expect(task?.completionDate).toBeNull();
+		expect(task?.creationDate).toBe("2026-09-01");
+	});
+
+	it("leaves a non-ISO start: in the description", () => {
+		const task = parseTaskLine("- [ ] Call start:tomorrow");
+		expect(task?.start).toBeNull();
+		expect(task?.description).toBe("Call start:tomorrow");
+	});
+
+	it("keeps only the first start: and leaves the duplicate as text", () => {
+		const task = parseTaskLine("- [/] Call start:2026-09-19 start:2026-09-20");
+		expect(task?.start).toBe("2026-09-19");
+		expect(task?.description).toBe("Call start:2026-09-20");
+	});
+
+	it("serializes [/] and places start: after due: and t:", () => {
+		const raw =
+			"- [/] (A) 2026-09-01 Call +Fin #calls due:2026-09-25 t:2026-09-10 start:2026-09-19";
+		const task = parseTaskLine(raw)!;
+		expect(serializeTask(task)).toBe(raw);
+	});
+
+	it("round-trips a done task with completion, creation and start", () => {
+		const raw = "- [x] 2026-09-25 2026-09-01 Call start:2026-09-19";
+		expect(serializeTask(parseTaskLine(raw)!)).toBe(raw);
+	});
+
+	it("reports a start span", () => {
+		const line = "- [/] Call start:2026-09-19";
+		const result = parseTaskLineWithSpans(line)!;
+		const span = result.spans.find((s) => s.kind === "start")!;
+		expect(line.slice(span.start, span.end)).toBe("start:2026-09-19");
+		expect(checkboxBodyStart(line)).toBe(6);
 	});
 });

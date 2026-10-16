@@ -105,7 +105,7 @@ export function aggregateTasks(
 	clock: Clock,
 ): TaskRecord[] {
 	const filtered = records.filter(({ task, inherited }) => {
-		if (!filter.includeDone && task.done) return false;
+		if (!filter.includeDone && task.status === "done") return false;
 		const contextNames = [...task.contexts, ...inherited.contexts].map((c) => c.name);
 		if (filter.contexts.some((c) => !contextNames.includes(c))) return false;
 		const projects = [...task.projects, ...inherited.projects];

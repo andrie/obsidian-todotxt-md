@@ -1,7 +1,8 @@
 import { ItemView, WorkspaceLeaf, TFile, debounce, parseYaml, type Editor } from "obsidian";
 import type TodotxtMdPlugin from "./main";
 import { parseTaskLine, serializeTask } from "./parse";
-import { toggleDone } from "./editor";
+import { cycleStatus } from "./editor";
+import { splitWikilinks } from "./links";
 import {
 	aggregateTasks,
 	inheritedFor,
@@ -122,19 +123,67 @@ export class AggregatedTaskView extends ItemView {
 
 		for (const record of visible) {
 			const item = listEl.createDiv({ cls: "todotxt-md-task-item" });
-			if (record.task.done) item.addClass("is-done");
+			if (record.task.status === "done") item.addClass("is-done");
+			if (record.task.status === "progress") item.addClass("is-progress");
 
-			const checkbox = item.createEl("input", { type: "checkbox" });
-			checkbox.checked = record.task.done;
-			checkbox.addEventListener("click", (evt) => {
+			const statusLabel = { open: "Open", progress: "In progress", done: "Done" }[
+				record.task.status
+			];
+			const statusButton = item.createEl("button", {
+				cls: "todotxt-md-status",
+				attr: {
+					"data-status": record.task.status,
+					"aria-label": `${statusLabel}, click to advance`,
+				},
+			});
+			statusButton.addEventListener("click", (evt) => {
 				evt.stopPropagation();
-				void this.toggleRecordDone(record);
+				void this.cycleRecordStatus(record);
 			});
 
 			item.addEventListener("click", () => {
 				void this.jumpToTask(record);
 			});
 			this.renderTaskRow(item, record);
+		}
+	}
+
+	/** Renders description text, turning [[wikilinks]] into clickable internal links. */
+	private renderDescription(el: HTMLElement, description: string, sourcePath: string): void {
+		if (!description) {
+			el.setText("(no description)");
+			return;
+		}
+		for (const segment of splitWikilinks(description)) {
+			if (segment.kind === "text") {
+				el.appendText(segment.text);
+				continue;
+			}
+			const link = el.createEl("a", {
+				text: segment.display,
+				cls: "internal-link",
+				attr: { "data-href": segment.target, href: segment.target },
+			});
+			link.addEventListener("click", (evt) => {
+				// Open the note, not the task row's own "jump to task" handler.
+				evt.preventDefault();
+				evt.stopPropagation();
+				void this.app.workspace.openLinkText(
+					segment.target,
+					sourcePath,
+					evt.ctrlKey || evt.metaKey,
+				);
+			});
+			link.addEventListener("mouseover", (evt) => {
+				this.app.workspace.trigger("hover-link", {
+					event: evt,
+					source: TASK_VIEW_TYPE,
+					hoverParent: this,
+					targetEl: link,
+					linktext: segment.target,
+					sourcePath,
+				});
+			});
 		}
 	}
 
@@ -149,10 +198,8 @@ export class AggregatedTaskView extends ItemView {
 			container.createSpan({ text: task.creationDate, cls: "todotxt-md-date-segment" });
 			container.appendText(" ");
 		}
-		container.createSpan({
-			text: task.description || "(no description)",
-			cls: "todotxt-md-description",
-		});
+		const descriptionEl = container.createSpan({ cls: "todotxt-md-description" });
+		this.renderDescription(descriptionEl, task.description, record.filePath);
 
 		const projects = [
 			...task.projects.map((name) => ({ name, inherited: false })),
@@ -291,7 +338,7 @@ export class AggregatedTaskView extends ItemView {
 		}
 	}
 
-	private async toggleRecordDone(record: TaskRecord): Promise<void> {
+	private async cycleRecordStatus(record: TaskRecord): Promise<void> {
 		const file = this.app.vault.getAbstractFileByPath(record.filePath);
 		if (!(file instanceof TFile)) return;
 
@@ -301,7 +348,7 @@ export class AggregatedTaskView extends ItemView {
 		const task = parseTaskLine(lineText);
 		if (!task) return;
 
-		const updated = toggleDone(task, this.clock);
+		const updated = cycleStatus(task, this.clock);
 		lines[record.line] = serializeTask(updated);
 		await this.app.vault.modify(file, lines.join("\n"));
 

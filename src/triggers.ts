@@ -133,6 +133,10 @@ export class TypedSpaceTracker {
 		this.last = { lineNo, text, lineCount };
 	}
 
+	debugLast(): string { // DEBUG-TEMP
+		return this.last ? `${this.last.lineNo}/${this.last.lineCount}` : "none";
+	}
+
 	isTyped(lineNo: number, text: string, ch: number): boolean {
 		const typed = this.typed;
 		return !!typed && typed.lineNo === lineNo && typed.text === text && typed.ch === ch;

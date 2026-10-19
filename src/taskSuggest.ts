@@ -5,6 +5,7 @@ import {
 	EditorSuggest,
 	EditorSuggestContext,
 	EditorSuggestTriggerInfo,
+	Notice,
 	TFile,
 } from "obsidian";
 import { detectTrigger, TypedSpaceTracker, type TriggerMatch } from "./triggers";
@@ -47,6 +48,7 @@ export class TaskFieldSuggest extends EditorSuggest<TaskSuggestion> {
 	private options: TaskSuggestOptions = { enabled: true, fieldMenu: true, maxItems: 10 };
 	/** The field menu opens only right after a space the user typed (see TypedSpaceTracker). */
 	private readonly typedSpace = new TypedSpaceTracker();
+	private dbgPrev = ""; // DEBUG-TEMP
 
 	constructor(
 		app: App,
@@ -78,6 +80,14 @@ export class TaskFieldSuggest extends EditorSuggest<TaskSuggestion> {
 	): EditorSuggestTriggerInfo | null {
 		const line = editor.getLine(cursor.line);
 		// Observe before any early return so the tracker always sees the previous line state.
+		// DEBUG-TEMP
+		if (line.slice(0, cursor.ch).endsWith(" ")) {
+			new Notice(
+				`prev=${JSON.stringify(this.dbgPrev)} now=${JSON.stringify(line)} ch=${cursor.ch}`,
+				8000,
+			);
+		}
+		this.dbgPrev = line;
 		this.typedSpace.observe(cursor.line, line, cursor.ch, editor.lineCount());
 		if (!this.options.enabled) return null;
 		const match = this.matchAt(cursor.line, line, cursor.ch);

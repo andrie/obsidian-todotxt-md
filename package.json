@@ -1,6 +1,6 @@
 {
 	"name": "todotxt-md",
-	"version": "0.4.3",
+	"version": "0.4.4",
 	"description": "Clean, keyboard-driven, emoji-free todo.txt ergonomics over Markdown checkboxes in Obsidian.",
 	"main": "main.js",
 	"type": "module",
